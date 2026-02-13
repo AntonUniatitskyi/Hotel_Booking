@@ -6,7 +6,7 @@ RUN apt update && apt install -y \
     --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /app
+WORKDIR /code
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1

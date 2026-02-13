@@ -8,9 +8,10 @@ from django.http import HttpResponseRedirect
 from django.urls import reverse
 
 
-from rest_framework import viewsets, filters
-from .serializers import HostelSerializer, ClientSerializer
+from rest_framework import viewsets, filters, generics
+from .serializers import HostelSerializer, ClientSerializer, RegisterSerializer, BookingSerializer
 from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.permissions import AllowAny, IsAuthenticated
 
 class HostelViewSet(viewsets.ModelViewSet):
     queryset = Hostel.objects.all()
@@ -27,6 +28,37 @@ class ClientViewSet(viewsets.ModelViewSet):
     filter_backends = [filters.OrderingFilter, filters.SearchFilter]
     ordering_fields = ['fullname']
     search_fields = ['email', 'fullname']
+
+
+class BookingViewSet(viewsets.ModelViewSet):
+    queryset = Booking.objects.all()
+    serializer_class = BookingSerializer
+    permission_classes = [IsAuthenticated]
+
+    def destroy(self, request, *args, **kwargs):
+        booking = self.get_object()
+        today = timezone.now().date()
+        time_diff = booking.start_date - today
+
+        if time_diff < timedelta(days=1):
+            return Response(
+                {"error": "Скасування неможливе: до заїзду залишилося менше 24 годин."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        self.perform_destroy(booking)
+        return Response(
+            {"message": "Бронювання успішно скасовано."},
+            status=status.HTTP_204_NO_CONTENT
+        )
+
+class RegisterView(generics.CreateAPIView):
+    queryset = Client.objects.all()
+    permission_classes = (AllowAny,) # Дозволяємо всім реєструватися
+    serializer_class = RegisterSerializer
+
+
+
 
 def request_login(request):
     if request.method == 'POST':
@@ -68,6 +100,11 @@ def request_login(request):
     else:
         form = EmailPasswordForm()
     return render(request, 'booking/request_login.html', {'form': form})
+
+
+
+
+
 
 # Create your views here.
 def index(request):
