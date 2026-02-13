@@ -7,6 +7,27 @@ from django.contrib.auth.models import User
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 
+
+from rest_framework import viewsets, filters
+from .serializers import HostelSerializer, ClientSerializer
+from django_filters.rest_framework import DjangoFilterBackend
+
+class HostelViewSet(viewsets.ModelViewSet):
+    queryset = Hostel.objects.all()
+    serializer_class = HostelSerializer
+    # Вимоги 4.1: Пошук по ключовому слову
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    search_fields = ['name', 'about']
+
+
+class ClientViewSet(viewsets.ModelViewSet):
+    queryset = Client.objects.all()
+    serializer_class = ClientSerializer
+    # Вимога 2.6, 2.7 та 4.2: Сортування за ПІБ та пошук за Email
+    filter_backends = [filters.OrderingFilter, filters.SearchFilter]
+    ordering_fields = ['fullname']
+    search_fields = ['email', 'fullname']
+
 def request_login(request):
     if request.method == 'POST':
         form = EmailPasswordForm(request.POST)
@@ -93,7 +114,7 @@ def client(request):
             messages.error(request, 'Користувач з такою поштою вже зареєстрований. Бажаєте увійти?')
             return redirect('client')
 
-        
+
     form = ClientForm()
     context = {'form': form}
     return render(request, 'booking/client.html', context)
@@ -152,7 +173,7 @@ def booking(request, item_id):
         form = BookingForm(initial={'room': room, 'price': room_price})
         form.fields['room'].widget.attrs['style'] = 'pointer-events: none;'
         return render(request, 'booking/book.html', {'form': form, 'room': room, 'price': room_price})
-    
+
 def create_hotels(request):
     admin_name = request.session.get('username', None)
     if request.method == 'POST':
@@ -243,7 +264,7 @@ def detail_booking(request, item_id):
     if request.method == 'GET':
         form = BookingForm()
         return render(request, 'booking/bron_detail.html', {'form': form, 'item': item})
-    
+
 def add_admin(request):
     if request.method == 'POST':
         form = UserForm(request.POST)
@@ -262,5 +283,5 @@ def add_admin(request):
 def del_comment(request, item_id):
     comment = get_object_or_404(Comment, id=item_id)
     comment.delete()
-    
+
     return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
