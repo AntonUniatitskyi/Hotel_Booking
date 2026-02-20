@@ -4,25 +4,32 @@ from django.utils import timezone
 from django.contrib.auth.hashers import make_password, check_password
 
 class Client(models.Model):
-    first_name = models.CharField(max_length=50, verbose_name="Ім'я")
-    last_name = models.CharField(max_length=50, verbose_name="Прізвище")
-    email = models.EmailField(max_length=100, verbose_name="Електронна пошта", unique=True)
+    # first_name = models.CharField(max_length=50, verbose_name="Ім'я")
+    # last_name = models.CharField(max_length=50, verbose_name="Прізвище")
+    # email = models.EmailField(max_length=100, verbose_name="Електронна пошта", unique=True)
+    user = models.OneToOneField(
+        User, on_delete=models.CASCADE, related_name='client'
+    )
     age = models.PositiveIntegerField(verbose_name="Вік")
-    password = models.CharField(max_length=255, verbose_name="Пароль")
+    # password = models.CharField(max_length=255, verbose_name="Пароль")
     last_login = models.DateTimeField(null=True, blank=True, verbose_name="Останній вхід")
-
-    def set_password(self, raw_password):
-        """Хеширует пароль перед сохранением"""
-        self.password = make_password(raw_password)
-
-    def check_password(self, raw_password):
-        """Проверяет пароль с хешированным значением"""
-        return check_password(raw_password, self.password)
 
     def update_last_login(self):
         """Обновляет время последнего входа"""
         self.last_login = timezone.now()
-        self.save()
+        self.save(update_fields=['last_login'])
+
+    @property
+    def first_name(self):
+        return self.user.first_name
+
+    @property
+    def email(self):
+        return self.user.email
+
+    @property
+    def last_name(self):
+        return self.user.last_name
 
     @property
     def fullname(self):
