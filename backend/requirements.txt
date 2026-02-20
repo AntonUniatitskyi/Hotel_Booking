@@ -3,7 +3,11 @@ attrs==25.4.0
 Django==6.0.2
 django-cors-headers==4.9.0
 django-filter==25.2
+django-stubs==5.2.9
+django-stubs-ext==5.2.9
+django-types==0.23.0
 djangorestframework==3.16.1
+djangorestframework-stubs==3.16.8
 djangorestframework_simplejwt==5.5.1
 drf-spectacular==0.29.0
 inflection==0.5.1
@@ -16,6 +20,8 @@ pyrsistent==0.20.0
 python-decouple==3.8
 PyYAML==6.0.3
 sqlparse==0.5.5
+types-psycopg2==2.9.21.20251012
+types-PyYAML==6.0.12.20250915
 typing_extensions==4.15.0
 tzdata==2025.3
 uritemplate==4.2.0

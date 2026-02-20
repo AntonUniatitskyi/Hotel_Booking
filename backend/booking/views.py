@@ -91,5 +91,3 @@ class RegisterView(generics.CreateAPIView):
     queryset = Client.objects.all()
     permission_classes = (AllowAny,)  # Дозволяємо всім реєструватися
     serializer_class = RegisterSerializer
-    permission_classes = (AllowAny,)  # Дозволяємо всім реєструватися
-    serializer_class = RegisterSerializer
