@@ -18,6 +18,8 @@ services:
       - db-data:/var/lib/postgresql
   backend:
     build: ./backend
+    profiles:
+      - prod
     container_name: hotel_backend
     working_dir: /code
     volumes:
