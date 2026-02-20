@@ -115,15 +115,13 @@ AUTH_PASSWORD_VALIDATORS = [
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        # 'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'booking.authentication.CustomJWTAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticatedOrReadOnly',
     ],
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.AllowAny',
-    ],
 }
 
 SPECTACULAR_SETTINGS = {
@@ -168,7 +166,3 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 DATETIME_FORMAT = "d M Y, H:i"
-
-SESSION_ENGINE = 'django.contrib.sessions.backends.db'  # Хранение сессий в базе данных
-SESSION_EXPIRE_AT_BROWSER_CLOSE = False  # Сессия не исчезает при закрытии браузера
-SESSION_SAVE_EVERY_REQUEST = True  # Сохранять сессию после каждого запроса

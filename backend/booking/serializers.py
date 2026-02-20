@@ -8,7 +8,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 class ClientSerializer(serializers.ModelSerializer):
     class Meta:
         model = Client
-        fields = ['id', 'fullname', 'email', 'age', 'last_login']
+        fields = ['id', 'first_name', 'last_name', 'email', 'age', 'last_login']
 
 class RoomSerializer(serializers.ModelSerializer):
     class Meta:
@@ -72,7 +72,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Client
-        fields = ['fullname', 'email', 'age', 'password']
+        fields = ['first_name', 'last_name', 'email', 'age', 'password']
 
     def create(self, validated_data):
         password = validated_data.pop('password')
