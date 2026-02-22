@@ -7,10 +7,44 @@ from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticate
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from .permissions import IsAdminOrReadOnly, IsClientOrAdmin
+from rest_framework.parsers import MultiPartParser, FormParser
 
-from .models import Booking, Client, Hostel
+from .models import Booking, Client, Hostel, Room
 from .serializers import (BookingSerializer, ClientSerializer,
                           HostelSerializer, RegisterSerializer, RoomSerializer)
+
+from rest_framework import viewsets, status
+from rest_framework.response import Response
+from rest_framework.exceptions import PermissionDenied
+
+class RoomViewSet(viewsets.ModelViewSet):
+    serializer_class = RoomSerializer
+    filterset_fields = ['hostel']
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser:
+            return Room.objects.all()
+
+        if user.is_staff:
+            return Room.objects.filter(hostel__admin=user)
+
+        return Room.objects.all()
+
+    def perform_create(self, serializer):
+        hostel = serializer.validated_data.get('hostel')
+        if not self.request.user.is_superuser:
+            if hostel.admin != self.request.user:
+                raise PermissionDenied("Ви не можете додавати номери до чужого готелю!")
+
+        serializer.save()
+
+    def perform_update(self, serializer):
+        room = self.get_object()
+        if not self.request.user.is_superuser and room.hostel.admin != self.request.user:
+            raise PermissionDenied("Ви не можете редагувати номери в чужому готелі!")
+
+        serializer.save()
 
 
 class HostelViewSet(viewsets.ModelViewSet):
@@ -20,6 +54,19 @@ class HostelViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     search_fields = ['name', 'about']
     permission_classes = [IsAdminOrReadOnly]
+    parser_classes = (MultiPartParser, FormParser)
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_superuser:
+            return Hostel.objects.all()
+        if user.is_staff:
+            return Hostel.objects.filter(admin=user)
+        return Hostel.objects.all()
+
+    def perform_create(self, serializer):
+        serializer.save(admin=self.request.user)
+
 
     @action(detail=True, methods=['get'])
     def availability(self, request, pk=None):
@@ -81,8 +128,13 @@ class BookingViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.is_authenticated and getattr(user, 'is_staff', False):
+        if user.is_superuser:
             return Booking.objects.all()
+
+        if user.is_staff:
+            # Адмін бачить бронювання тільки ТИХ номерів,
+            # які належать до ЙОГО готелів
+            return Booking.objects.filter(room__hostel__admin=user)
         return Booking.objects.filter(client__user=user)
 
     def destroy(self, request, *args, **kwargs):

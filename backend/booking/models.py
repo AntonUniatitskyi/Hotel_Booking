@@ -44,6 +44,12 @@ class Hostel(models.Model):
     about = models.TextField(verbose_name="Опис готелю")
     admin = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     adress = models.TextField(max_length=200, verbose_name="Адреса хостелу")
+    main_image = models.ImageField(
+        upload_to='hostels/main/',
+        null=True,
+        blank=True,
+        verbose_name="Головне фото готелю"
+    )
 
     def get_room(self):
         return self.rooms.order_by("bed")
@@ -54,11 +60,16 @@ class Hostel(models.Model):
     def get_comments(self):
         return self.comments.all()
 
+class HostelImage(models.Model):
+    hostel = models.ForeignKey(Hostel, on_delete=models.CASCADE, related_name="gallery_images")
+    image = models.ImageField(upload_to='hostels/gallery/', verbose_name="Фото території")
+
 class Room(models.Model):
     number = models.PositiveIntegerField(verbose_name="Кімната")
     price = models.PositiveIntegerField(verbose_name="Ціна")
     bed = models.PositiveIntegerField(verbose_name="Кількість спальних місць")
     hostel = models.ForeignKey(Hostel, on_delete=models.CASCADE, related_name="rooms")
+    preview = models.ImageField(upload_to='rooms/previews/', null=True, blank=True, verbose_name="Головне фото кімнати")
 
     def get_image(self):
         return self.images.all()

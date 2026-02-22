@@ -1,11 +1,20 @@
 from rest_framework import serializers
-from .models import Hostel, Room, Client, Booking
+from .models import Hostel, HostelImage, Room, Client, Booking, RoomImage
 from django.utils import timezone
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 from django.contrib.auth.models import User
 from django.db.models import Q
 
+class HostelImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = HostelImage
+        fields = ['id', 'image']
+
+class RoomImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RoomImage
+        fields = ['id', 'image']
 
 class ClientSerializer(serializers.ModelSerializer):
     first_name = serializers.ReadOnlyField()
@@ -17,17 +26,21 @@ class ClientSerializer(serializers.ModelSerializer):
         fields = ['id', 'first_name', 'last_name', 'email', 'fullname', 'age', 'last_login']
 
 class RoomSerializer(serializers.ModelSerializer):
+    hostel_name = serializers.ReadOnlyField(source='hostel.name')
+    hostel_address = serializers.ReadOnlyField(source='hostel.adress')
+    images = RoomImageSerializer(many=True, read_only=True)
     class Meta:
         model = Room
-        fields = ['id', 'number', 'price', 'bed', 'hostel']
+        fields = ['id', 'number', 'price', 'bed', 'hostel', 'hostel_name', 'hostel_address', 'preview', 'images']
 
 class HostelSerializer(serializers.ModelSerializer):
     free_seats = serializers.SerializerMethodField()
     rooms = RoomSerializer(many=True, read_only=True)
+    gallery_images = HostelImageSerializer(many=True, read_only=True)
 
     class Meta:
         model = Hostel
-        fields = ['id', 'name', 'about', 'adress', 'free_seats', 'rooms']
+        fields = ['id', 'name', 'about', 'adress', 'main_image', 'free_seats', 'rooms', 'gallery_images']
 
     def get_free_seats(self, obj):
         return sum(room.bed for room in obj.rooms.all())
@@ -35,29 +48,35 @@ class HostelSerializer(serializers.ModelSerializer):
 class BookingSerializer(serializers.ModelSerializer):
     price = serializers.IntegerField(read_only=True)
 
+    client_details = ClientSerializer(source='client', read_only=True)
+    room_details = RoomSerializer(source='room', read_only=True)
+
     class Meta:
         model = Booking
-        fields = ['id', 'client', 'room', 'start_date', 'last_date', 'price', 'approved']
+        fields = ['id', 'client', 'room', 'start_date', 'last_date', 'price', 'approved', 'client_details', 'room_details']
 
     def validate(self, attrs):
-        start = attrs['start_date']
-        end = attrs['last_date']
-        room = attrs['room']
+        instance = self.instance
+        start = attrs.get('start_date', instance.start_date if instance else None)
+        end = attrs.get('last_date', instance.last_date if instance else None)
+        room = attrs.get('room', instance.room if instance else None)
 
-        if start >= end:
-            raise serializers.ValidationError("Дата виїзду має бути пізніше дати заїзду.")
+        if start and end:
+            if start >= end:
+                raise serializers.ValidationError({"start_date": "Дата виїзду має бути пізніше дати заїзду."})
 
-        if start < timezone.now().date():
-            raise serializers.ValidationError("Не можна забронювати номер на минуле.")
+            if not instance and start < timezone.now().date():
+                raise serializers.ValidationError({"start_date": "Не можна забронювати номер на минуле."})
 
-        overlap = Booking.objects.filter(
-            room=room,
-            start_date__lt=end,
-            last_date__gt=start
-        ).exclude(pk=self.instance.pk if self.instance else None)
+        if room and start and end:
+            overlap = Booking.objects.filter(
+                room=room,
+                start_date__lt=end,
+                last_date__gt=start
+            ).exclude(pk=instance.pk if instance else None)
 
-        if overlap.exists():
-            raise serializers.ValidationError("Ця кімната вже зайнята на обрані дати.")
+            if overlap.exists():
+                raise serializers.ValidationError("Ця кімната вже зайнята на обрані дати.")
 
         return attrs
 
@@ -103,6 +122,15 @@ class RegisterSerializer(serializers.ModelSerializer):
 
         return client
 
+    def validate_username(self, value):
+        if User.objects.filter(username=value).exists():
+            raise serializers.ValidationError("Користувач з таким нікнеймом вже існує.")
+        return value
+
+    def validate_email(self, value):
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("Користувач з такою поштою вже існує.")
+        return value
 class ClientTokenObtainSerializer(TokenObtainPairSerializer):
     username_field = 'username'
 
