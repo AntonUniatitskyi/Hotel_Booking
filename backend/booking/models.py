@@ -43,7 +43,8 @@ class Hostel(models.Model):
     name = models.CharField(max_length=100, verbose_name="Назва готелю")
     about = models.TextField(verbose_name="Опис готелю")
     admin = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
-    adress = models.TextField(max_length=200, verbose_name="Адреса хостелу")
+    city = models.CharField(max_length=100, verbose_name="Місто", default="Київ")
+    address = models.CharField(max_length=255, verbose_name="Вулиця та номер будинку")
     main_image = models.ImageField(
         upload_to='hostels/main/',
         null=True,

@@ -24,6 +24,7 @@ services:
     working_dir: /code
     volumes:
       - ./backend:/code
+      - media_volume:/code/media
     command: >
       sh -c "python manage.py collectstatic --noinput &&
              python manage.py migrate &&
@@ -37,3 +38,4 @@ services:
         condition: service_healthy
 volumes:
   db-data:
+  media_volume:

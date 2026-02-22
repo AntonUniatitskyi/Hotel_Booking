@@ -29,7 +29,7 @@ from booking.views import RegisterView
 router = routers.DefaultRouter()
 router.register(r'hostels', HostelViewSet)
 router.register(r'clients', ClientViewSet)
-router.register(r'bookings', BookingViewSet)
+router.register(r'bookings', BookingViewSet, basename='booking')
 router.register(r'rooms', RoomViewSet, basename='room')
 
 urlpatterns = [

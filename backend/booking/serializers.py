@@ -27,11 +27,12 @@ class ClientSerializer(serializers.ModelSerializer):
 
 class RoomSerializer(serializers.ModelSerializer):
     hostel_name = serializers.ReadOnlyField(source='hostel.name')
-    hostel_address = serializers.ReadOnlyField(source='hostel.adress')
+    hostel_address = serializers.ReadOnlyField(source='hostel.address')
+    hostel_city = serializers.ReadOnlyField(source='hostel.city')
     images = RoomImageSerializer(many=True, read_only=True)
     class Meta:
         model = Room
-        fields = ['id', 'number', 'price', 'bed', 'hostel', 'hostel_name', 'hostel_address', 'preview', 'images']
+        fields = ['id', 'number', 'price', 'bed', 'hostel', 'hostel_name', 'hostel_city', 'hostel_address', 'preview', 'images']
 
 class HostelSerializer(serializers.ModelSerializer):
     free_seats = serializers.SerializerMethodField()
@@ -40,7 +41,7 @@ class HostelSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Hostel
-        fields = ['id', 'name', 'about', 'adress', 'main_image', 'free_seats', 'rooms', 'gallery_images']
+        fields = ['id', 'name', 'about', 'city', 'address', 'main_image', 'free_seats', 'rooms', 'gallery_images']
 
     def get_free_seats(self, obj):
         return sum(room.bed for room in obj.rooms.all())

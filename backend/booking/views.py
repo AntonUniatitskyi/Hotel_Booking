@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 
+from django.http import HttpResponse
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, generics, status, viewsets
@@ -9,13 +10,16 @@ from rest_framework.response import Response
 from .permissions import IsAdminOrReadOnly, IsClientOrAdmin
 from rest_framework.parsers import MultiPartParser, FormParser
 
-from .models import Booking, Client, Hostel, Room
+from .models import Booking, Client, Hostel, Room, RoomImage
 from .serializers import (BookingSerializer, ClientSerializer,
                           HostelSerializer, RegisterSerializer, RoomSerializer)
 
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
+from reportlab.pdfgen import canvas
+import qrcode
+import io
 
 class RoomViewSet(viewsets.ModelViewSet):
     serializer_class = RoomSerializer
@@ -37,7 +41,10 @@ class RoomViewSet(viewsets.ModelViewSet):
             if hostel.admin != self.request.user:
                 raise PermissionDenied("Ви не можете додавати номери до чужого готелю!")
 
-        serializer.save()
+        room = serializer.save()
+        images_data = self.request.FILES.getlist('uploaded_images')
+        for image_data in images_data:
+            RoomImage.objects.create(room=room, image=image_data)
 
     def perform_update(self, serializer):
         room = self.get_object()
@@ -52,7 +59,7 @@ class HostelViewSet(viewsets.ModelViewSet):
     serializer_class = HostelSerializer
     # Вимоги 4.1: Пошук по ключовому слову
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
-    search_fields = ['name', 'about']
+    search_fields = ['name', 'about', 'city', 'address']
     permission_classes = [IsAdminOrReadOnly]
     parser_classes = (MultiPartParser, FormParser)
 
@@ -162,6 +169,43 @@ class BookingViewSet(viewsets.ModelViewSet):
             serializer.save(client=client)
         else:
             serializer.save()
+
+    @action(detail=True, methods=['get'])
+    def download_invoice(self, request, pk=None):
+        booking = self.get_object()
+        full_name = booking.client.user.get_full_name() or booking.client.user.username
+        # Створюємо PDF у пам'яті
+        buffer = io.BytesIO()
+        p = canvas.Canvas(buffer)
+
+        # Малюємо заголовок
+        p.setFont("Helvetica-Bold", 16)
+        p.drawString(100, 800, f"Booking Confirmation #{booking.id}")
+
+        p.setFont("Helvetica", 12)
+        p.drawString(100, 770, f"Hotel: {booking.room.hostel.name}")
+        location = f"{booking.room.hostel.city}, {booking.room.hostel.address}"
+        p.drawString(100, 750, f"Address: {location}")
+        p.drawString(100, 730, f"Guest: {full_name}")
+        p.drawString(100, 710, f"Dates: {booking.start_date} - {booking.last_date}")
+        p.drawString(100, 690, f"Total Price: ${booking.price}")
+
+        # Генеруємо QR-код (можна зашити посилання на сайт)
+        qr_data = f"Booking ID: {booking.id} | Status: {booking.approved}"
+        qr = qrcode.make(qr_data)
+        qr_buffer = io.BytesIO()
+        qr.save(qr_buffer, format='PNG')
+        qr_buffer.seek(0)
+
+        # Малюємо QR-код на PDF
+        from reportlab.lib.utils import ImageReader
+        p.drawImage(ImageReader(qr_buffer), 100, 550, width=100, height=100)
+
+        p.showPage()
+        p.save()
+
+        buffer.seek(0)
+        return HttpResponse(buffer, content_type='application/pdf')
 
 
 class RegisterView(generics.CreateAPIView):
