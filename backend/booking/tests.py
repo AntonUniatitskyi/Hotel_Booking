@@ -63,3 +63,55 @@ class BookingAPITest(APITestCase):
             last_date=date.today() + timedelta(days=2)
         )
         self.client.force_authenticate(user=self.user)
+
+def test_booking_queryset_isolation(self):
+        other_user = User.objects.create_user(username='hacker', password='123')
+        other_client = Client.objects.create(user=other_user, age=20)
+        Booking.objects.create(
+            client=other_client, room=self.room, price=500,
+            start_date=date.today() + timedelta(days=10),
+            last_date=date.today() + timedelta(days=12)
+        )
+
+        url = reverse('booking-list')
+        response = self.client.get(url)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['client'], self.client_profile.pk)
+
+class RegistrationTest(APITestCase):
+    def test_registration_success(self):
+        url = reverse('auth_register')
+        data = {
+            "username": "new_student",
+            "password": "strong_password123",
+            "first_name": "Antons",
+            "last_name": "KPI",
+            "email": "student@kpi.ua",
+            "age": 18
+        }
+        response = self.client.post(url, data)
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(User.objects.filter(username="new_student").exists())
+        self.assertTrue(Client.objects.filter(user__username="new_student").exists())
+        user = User.objects.get(username="new_student")
+        self.assertNotEqual(user.password, "strong_password123")
+        self.assertTrue(user.check_password("strong_password123"))
+
+class RoomPermissionTest(APITestCase):
+    def setUp(self):
+        self.admin1 = User.objects.create_user(username='admin1', is_staff=True)
+        self.admin2 = User.objects.create_user(username='admin2', is_staff=True)
+        self.hostel_of_admin1 = Hostel.objects.create(name="Hostel 1", admin=self.admin1)
+
+    def test_admin_cannot_add_room_to_others_hostel(self):
+        self.client.force_authenticate(user=self.admin2)
+        url = reverse('room-list')
+        data = {
+            "number": 999,
+            "price": 100,
+            "bed": 2,
+            "hostel": self.hostel_of_admin1.pk
+        }
+        response = self.client.post(url, data)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
