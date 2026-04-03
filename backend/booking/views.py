@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 
 from django.http import HttpResponse
+from django.db.models import Sum
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, generics, status, viewsets
@@ -17,10 +18,7 @@ from .serializers import (BookingSerializer, ClientSerializer,
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
-from reportlab.pdfgen import canvas
-import qrcode
-import io
-
+from services.pdf_service import InvoicePDFGenerator
 class RoomViewSet(viewsets.ModelViewSet):
     serializer_class = RoomSerializer
     filterset_fields = ['hostel']
@@ -69,7 +67,7 @@ class HostelViewSet(viewsets.ModelViewSet):
             return Hostel.objects.all()
         if user.is_staff:
             return Hostel.objects.filter(admin=user)
-        return Hostel.objects.all()
+        return Hostel.objects.filter(is_active=True)
 
     def perform_create(self, serializer):
         serializer.save(admin=self.request.user)
@@ -92,17 +90,17 @@ class HostelViewSet(viewsets.ModelViewSet):
             start_date__lte=check_date,
             last_date__gte=check_date,
             approved=True
-        )
+        ).select_related('room__hostel', 'client__user')
         booked_room_ids = active_bookings.values_list('room_id', flat=True)
 
-        all_rooms = hostel.rooms.all()
+        all_rooms = hostel.rooms.select_related('hostel').prefetch_related('images').all()
         booked_rooms = all_rooms.filter(id__in=booked_room_ids)
         free_rooms = all_rooms.exclude(id__in=booked_room_ids)
 
         return Response({
             "date": check_date,
-            "total_free_seats": sum(r.bed for r in free_rooms),
-            "total_booked_seats": sum(r.bed for r in booked_rooms),
+            "total_free_seats": free_rooms.aggregate(total=Sum('bed'))['total'] or 0,
+            "total_booked_seats": booked_rooms.aggregate(total=Sum('bed'))['total'] or 0,
             "free_rooms": RoomSerializer(free_rooms, many=True).data,
             "booked_rooms": RoomSerializer(booked_rooms, many=True).data,
             "booked_details": BookingSerializer(active_bookings, many=True).data
@@ -120,7 +118,7 @@ class ClientViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         # Проверяем аутентификацию и тип
-        if user.is_authenticated and getattr(user, 'is_staff', False):
+        if user.is_staff:
             return Client.objects.all()
         return Client.objects.filter(user=user)
 
@@ -135,14 +133,18 @@ class BookingViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
+        base_qs = Booking.objects.select_related(
+            'room__hostel__admin', 'client__user'
+        )
+
         if user.is_superuser:
-            return Booking.objects.all()
+            return base_qs
 
         if user.is_staff:
             # Адмін бачить бронювання тільки ТИХ номерів,
             # які належать до ЙОГО готелів
-            return Booking.objects.filter(room__hostel__admin=user)
-        return Booking.objects.filter(client__user=user)
+            return base_qs.filter(room__hostel__admin=user)
+        return base_qs.filter(client__user=user)
 
     def destroy(self, request, *args, **kwargs):
         booking = self.get_object()
@@ -165,7 +167,7 @@ class BookingViewSet(viewsets.ModelViewSet):
         user = self.request.user
         client = getattr(user, 'client', None)
 
-        if not getattr(user, 'is_staff', False) and client:
+        if client:
             serializer.save(client=client)
         else:
             serializer.save()
@@ -173,39 +175,14 @@ class BookingViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'])
     def download_invoice(self, request, pk=None):
         booking = self.get_object()
-        full_name = booking.client.user.get_full_name() or booking.client.user.username
-        # Створюємо PDF у пам'яті
-        buffer = io.BytesIO()
-        p = canvas.Canvas(buffer)
+        try:
+            buffer = InvoicePDFGenerator(booking).generate()
+        except Exception:
+            return Response({"error": "Помилка генерації PDF"}, status=500)
 
-        # Малюємо заголовок
-        p.setFont("Helvetica-Bold", 16)
-        p.drawString(100, 800, f"Booking Confirmation #{booking.id}")
-
-        p.setFont("Helvetica", 12)
-        p.drawString(100, 770, f"Hotel: {booking.room.hostel.name}")
-        location = f"{booking.room.hostel.city}, {booking.room.hostel.address}"
-        p.drawString(100, 750, f"Address: {location}")
-        p.drawString(100, 730, f"Guest: {full_name}")
-        p.drawString(100, 710, f"Dates: {booking.start_date} - {booking.last_date}")
-        p.drawString(100, 690, f"Total Price: ${booking.price}")
-
-        # Генеруємо QR-код (можна зашити посилання на сайт)
-        qr_data = f"Booking ID: {booking.id} | Status: {booking.approved}"
-        qr = qrcode.make(qr_data)
-        qr_buffer = io.BytesIO()
-        qr.save(qr_buffer, format='PNG')
-        qr_buffer.seek(0)
-
-        # Малюємо QR-код на PDF
-        from reportlab.lib.utils import ImageReader
-        p.drawImage(ImageReader(qr_buffer), 100, 550, width=100, height=100)
-
-        p.showPage()
-        p.save()
-
-        buffer.seek(0)
-        return HttpResponse(buffer, content_type='application/pdf')
+        response = HttpResponse(buffer, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="invoice_{booking.id}.pdf"'
+        return response
 
 
 class RegisterView(generics.CreateAPIView):

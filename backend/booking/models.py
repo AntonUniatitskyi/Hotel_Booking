@@ -4,14 +4,10 @@ from django.utils import timezone
 from django.contrib.auth.hashers import make_password, check_password
 
 class Client(models.Model):
-    # first_name = models.CharField(max_length=50, verbose_name="Ім'я")
-    # last_name = models.CharField(max_length=50, verbose_name="Прізвище")
-    # email = models.EmailField(max_length=100, verbose_name="Електронна пошта", unique=True)
     user = models.OneToOneField(
         User, on_delete=models.CASCADE, related_name='client'
     )
     age = models.PositiveIntegerField(verbose_name="Вік")
-    # password = models.CharField(max_length=255, verbose_name="Пароль")
     last_login = models.DateTimeField(null=True, blank=True, verbose_name="Останній вхід")
 
     def update_last_login(self):
@@ -51,6 +47,7 @@ class Hostel(models.Model):
         blank=True,
         verbose_name="Головне фото готелю"
     )
+    # is_active = models.BooleanField(default=False, verbose_name="Активний")
 
     def get_room(self):
         return self.rooms.order_by("bed")

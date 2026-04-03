@@ -4,7 +4,7 @@ from django.utils import timezone
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 from django.contrib.auth.models import User
-from django.db.models import Q
+from django.db.models import Q, Sum
 
 class HostelImageSerializer(serializers.ModelSerializer):
     class Meta:
@@ -41,10 +41,10 @@ class HostelSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Hostel
-        fields = ['id', 'name', 'about', 'city', 'address', 'main_image', 'free_seats', 'rooms', 'gallery_images']
+        fields = ['id', 'name', 'about', 'city', 'address', 'main_image', 'free_seats', 'rooms', 'gallery_images', 'is_active']
 
     def get_free_seats(self, obj):
-        return sum(room.bed for room in obj.rooms.all())
+        return obj.rooms.aggregate(total=Sum('bed'))['total'] or 0
 
 class BookingSerializer(serializers.ModelSerializer):
     price = serializers.IntegerField(read_only=True)
