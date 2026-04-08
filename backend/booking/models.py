@@ -47,7 +47,7 @@ class Hostel(models.Model):
         blank=True,
         verbose_name="Головне фото готелю"
     )
-    # is_active = models.BooleanField(default=False, verbose_name="Активний")
+    is_active = models.BooleanField(default=False, verbose_name="Активний")
 
     def get_room(self):
         return self.rooms.order_by("bed")

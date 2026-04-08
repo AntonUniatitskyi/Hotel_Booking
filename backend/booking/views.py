@@ -18,7 +18,7 @@ from .serializers import (BookingSerializer, ClientSerializer,
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
-from services.pdf_service import InvoicePDFGenerator
+from .services.pdf_service import InvoicePDFGenerator
 class RoomViewSet(viewsets.ModelViewSet):
     serializer_class = RoomSerializer
     filterset_fields = ['hostel']
