@@ -34,6 +34,8 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
+    'channels',
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -76,7 +78,18 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "core.wsgi.application"
+# WSGI_APPLICATION = "core.wsgi.application"
+
+ASGI_APPLICATION = "core.asgi.application"
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [(os.environ.get('REDIS_HOST', '127.0.0.1'), 6379)],
+        },
+    },
+}
 
 
 # Database
@@ -126,7 +139,22 @@ REST_FRAMEWORK = {
 
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Hotel Booking API',
-    'DESCRIPTION': 'API для бронювання готелів (Курсовий проект ІПЗ)',
+    'DESCRIPTION': '''
+        API для бронювання готелів (Курсовий проект ІПЗ)
+        **Real-time Notifications:**
+        Для отримання сповіщень у реальному часі підключіться до WebSocket:
+        `ws://{{host}}/ws/notifications/`
+        
+        Формат повідомлення:
+        ```json
+        {
+            "id": 1,
+            "title": "Заголовок",
+            "message": "Текст",
+            "created_at": "HH:MM"
+        }
+        ```
+    ''',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
     'APPEND_COMPONENTS': {

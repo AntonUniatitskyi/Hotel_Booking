@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Hostel, HostelImage, Room, Client, Booking, RoomImage
+from .models import Hostel, HostelImage, Room, Client, Booking, RoomImage, Notification
 from django.utils import timezone
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -174,3 +174,10 @@ class ClientTokenObtainSerializer(TokenObtainPairSerializer):
 
 class ClientTokenObtainView(TokenObtainPairView):
     serializer_class = ClientTokenObtainSerializer
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = ['id', 'title', 'message', 'is_read', 'created_at']
+        read_only_fields = ['id', 'title', 'message', 'created_at']
+
