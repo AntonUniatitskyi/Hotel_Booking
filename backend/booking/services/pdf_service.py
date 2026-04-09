@@ -96,9 +96,11 @@ class InvoicePDFGenerator:
         qr_buffer = io.BytesIO()
         qrcode.make(data).save(qr_buffer, format='PNG')
         qr_buffer.seek(0)
-        p.setFont(FONT_REGULAR, 8)
-        p.drawString(485, 535, "Відскануйте для перевірки")
-        p.drawImage(ImageReader(qr_buffer), 475, 550, width=70, height=70)
+        qr_x, qr_y, qr_size = 475, 550, 70
+        p.drawImage(ImageReader(qr_buffer), qr_x, qr_y, width=qr_size, height=qr_size)
+        p.setFont(FONT_REGULAR, 7)
+        center_x = qr_x + qr_size / 2
+        p.drawCentredString(center_x, qr_y - 12, "Відскануйте для перевірки")
 
     def _draw_footer(self, p):
         p.setFont(FONT_REGULAR, 9)
