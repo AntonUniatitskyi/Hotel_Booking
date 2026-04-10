@@ -21,14 +21,6 @@ except (TTFError, FileNotFoundError):
     FONT_BOLD = "Helvetica-Bold"
     FONT_REGULAR = "Helvetica"
 
-
-def truncate_text(canvas_obj, text: str, font: str, font_size: int, max_width: float) -> str:
-    if canvas_obj.stringWidth(text, font, font_size) <= max_width:
-        return text
-    while text and canvas_obj.stringWidth(text + "...", font, font_size) > max_width:
-        text = text[:-1]
-    return text + "..."
-
 class InvoicePDFGenerator:
     def __init__(self, booking):
         self.booking = booking
@@ -61,28 +53,45 @@ class InvoicePDFGenerator:
         p.setStrokeColor(colors.lightgrey)
         p.line(50, 765, 550, 765)
 
+    def _draw_wrapped_text(self, p, text: str, font: str, font_size: int,
+                           x: float, y: float, max_width: float, line_height: int = 14) -> float:
+        p.setFont(font, font_size)
+        words = text.split()
+        line = ""
+        for word in words:
+            test = f"{line} {word}".strip()
+            if p.stringWidth(test, font, font_size) <= max_width:
+                line = test
+            else:
+                p.drawString(x, y, line)
+                y -= line_height
+                line = word
+        if line:
+            p.drawString(x, y, line)
+        return y - line_height
+
     def _draw_details(self, p):
         b = self.booking
         full_name = b.client.user.get_full_name() or b.client.user.username
+
         LEFT_MAX_WIDTH = 270
         RIGHT_MAX_WIDTH = 180
-        hotel_name = truncate_text(p, f"Готель: {b.room.hostel.name}", FONT_REGULAR, 11, LEFT_MAX_WIDTH)
-        address = truncate_text(p, f"Адреса: {b.room.hostel.city}, {b.room.hostel.address}", FONT_REGULAR, 11,
-                                LEFT_MAX_WIDTH)
-        guest_name = truncate_text(p, f"Гість: {full_name}", FONT_REGULAR, 11, RIGHT_MAX_WIDTH)
-        period = truncate_text(p, f"Період: {b.start_date} — {b.last_date}", FONT_REGULAR, 11, RIGHT_MAX_WIDTH)
 
         p.setFont(FONT_BOLD, 12)
         p.drawString(50, 740, "Деталі готелю:")
         p.setFont(FONT_REGULAR, 11)
-        p.drawString(50, 725, hotel_name)
-        p.drawString(50, 710, address)
+        y_after_name = self._draw_wrapped_text(p, f"Готель: {b.room.hostel.name}",
+                                               FONT_REGULAR, 11, 50, 725, LEFT_MAX_WIDTH)
+        self._draw_wrapped_text(p, f"Адреса: {b.room.hostel.city}, {b.room.hostel.address}",
+                                FONT_REGULAR, 11, 50, y_after_name, LEFT_MAX_WIDTH)
 
         p.setFont(FONT_BOLD, 12)
         p.drawString(350, 740, "Інформація про гостя:")
         p.setFont(FONT_REGULAR, 11)
-        p.drawString(350, 725, guest_name)
-        p.drawString(350, 710, period)
+        y_after_guest = self._draw_wrapped_text(p, f"Гість: {full_name}",
+                                                FONT_REGULAR, 11, 350, 725, RIGHT_MAX_WIDTH)
+        self._draw_wrapped_text(p, f"Період: {b.start_date} — {b.last_date}",
+                                FONT_REGULAR, 11, 350, y_after_guest, RIGHT_MAX_WIDTH)
 
         p.setFillColor(colors.HexColor("#f8fafc"))
         p.rect(50, 640, 500, 40, fill=True, stroke=True)
