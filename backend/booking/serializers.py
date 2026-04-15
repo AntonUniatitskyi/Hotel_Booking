@@ -132,7 +132,9 @@ class RegisterSerializer(serializers.ModelSerializer):
         if User.objects.filter(email=value).exists():
             raise serializers.ValidationError("Користувач з такою поштою вже існує.")
         return value
-class ClientTokenObtainSerializer(TokenObtainPairSerializer):
+
+
+class UniversalTokenObtainSerializer(TokenObtainPairSerializer):
     username_field = 'username'
 
     def validate(self, attrs):
@@ -151,12 +153,13 @@ class ClientTokenObtainSerializer(TokenObtainPairSerializer):
 
         if not user.check_password(str(password)):
             raise serializers.ValidationError({"detail": "Невірний пароль."})
-
-        # ВАЖНО: Подменяем 'username' на реальный username пользователя из базы.
-        # Теперь super().validate найдет его и выдаст токен.
         attrs['username'] = user.username
-
         data = super().validate(attrs)
+
+        if user.is_superuser or user.is_staff:
+            data['role'] = 'admin'
+        else:
+            data['role'] = 'client'
 
         client_profile = getattr(user, 'client', None)
         if client_profile:
@@ -172,8 +175,8 @@ class ClientTokenObtainSerializer(TokenObtainPairSerializer):
 
         return data
 
-class ClientTokenObtainView(TokenObtainPairView):
-    serializer_class = ClientTokenObtainSerializer
+class UniversalTokenObtainView(TokenObtainPairView):
+    serializer_class = UniversalTokenObtainSerializer
 
 class NotificationSerializer(serializers.ModelSerializer):
     class Meta:

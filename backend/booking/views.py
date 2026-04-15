@@ -122,6 +122,34 @@ class ClientViewSet(viewsets.ModelViewSet):
             return Client.objects.all()
         return Client.objects.filter(user=user)
 
+    @action(detail=False, methods=['get', 'patch', 'put'], permission_classes=[IsAuthenticated])
+    def me(self, request):
+        user = request.user
+
+        if user.is_staff and not hasattr(user, 'client'):
+            return Response({
+                "id": None,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "email": user.email,
+                "fullname": f"{user.last_name} {user.first_name}".strip(),
+                "role": "admin",
+                "message": "Ви адміністратор без профілю клієнта."
+            })
+        client = get_object_or_404(Client, user=user)
+        if request.method == 'GET':
+            serializer = self.get_serializer(client)
+            data = serializer.data
+            data['role'] = 'admin' if user.is_staff else 'client'
+            return Response(data)
+
+        partial = request.method == 'PATCH'
+        serializer = self.get_serializer(client, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(serializer.data)
+
 
 class BookingViewSet(viewsets.ModelViewSet):
     queryset = Booking.objects.all()
