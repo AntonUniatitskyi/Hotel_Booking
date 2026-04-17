@@ -5,7 +5,6 @@ import { useNavigate } from 'react-router-dom';
 
 export default function Auth() {
     const [isLogin, setIsLogin] = useState(true);
-
     const [formData, setFormData] = useState({
         username: '',
         email: '',
@@ -25,51 +24,54 @@ export default function Auth() {
         e.preventDefault();
 
         if (!isLogin) {
-            // --- РЕЄСТРАЦІЯ ---
+            // ================= РЕЄСТРАЦІЯ =================
             try {
                 const dataToSend = {
                     ...formData,
-                    age: parseInt(formData.age, 10) || 0 // Конвертуємо рядок у число!
+                    age: parseInt(formData.age, 10) || 0 // Конвертуємо для строгого бекенду
                 };
 
-                // URL реєстрації залишився старим
-                const response = await axios.post('http://localhost:8000/api/register/client/', dataToSend);
-                console.log("Відповідь бекенду:", response.data);
+                await axios.post('http://localhost:8000/api/register/client/', dataToSend);
 
                 alert("Реєстрація успішна! Тепер увійдіть зі своїми даними.");
-                setIsLogin(true); // Перекидаємо на форму входу
+                setIsLogin(true);
 
             } catch (error) {
                 console.error("Помилка реєстрації:", error.response?.data);
-                alert("Помилка реєстрації! Перевірте правильність введених даних.");
+                alert("Помилка реєстрації! Перевірте дані.");
             }
 
         } else {
-            // --- ВХІД (НОВИЙ ЄДИНИЙ URL) ---
+            // ================= ВХІД =================
             try {
-                // Відправляємо тільки логін і пароль на нову адресу
-                const response = await axios.post('http://localhost:8000/api/login/', {
+                const loginRes = await axios.post('http://localhost:8000/api/login/', {
                     username: formData.username,
                     password: formData.password
                 });
 
-                const token = response.data.access || response.data.token || response.data.access_token;
-                const refresh = response.data.refresh;
+                // БЕКЕНД ТЕПЕР ВІДДАЄ ВСЕ ОДРАЗУ! Забираємо наші дані:
+                const token = loginRes.data.access || loginRes.data.token;
+                const refresh = loginRes.data.refresh;
+                const role = loginRes.data.role; // Беремо роль прямо з відповіді бекенду!
 
                 if (token) {
                     localStorage.setItem('token', token);
                     if (refresh) localStorage.setItem('refresh', refresh);
-
-                    // ТИМЧАСОВО: Записуємо всім статус клієнта, щоб просто розблокувати сайт
-                    localStorage.setItem('role', 'client');
+                    localStorage.setItem('role', role); // Зберігаємо справжню роль
                 }
 
-                alert("Ви успішно увійшли!");
-                window.location.href = '/'; // Жорстко перекидаємо на головну
+                if (role === 'admin') {
+                    alert("Вітаємо в системі, Адміністраторе! 👑");
+                    window.location.href = '/admin/dashboard';
+                } else {
+                    alert("Ви успішно увійшли!");
+                    window.location.href = '/';
+                }
 
             } catch (error) {
-                console.error("Помилка логіну:", error.response?.data);
+                console.error("Помилка логіну:", error);
                 alert("Невірний логін або пароль!");
+                localStorage.clear();
             }
         }
     };
