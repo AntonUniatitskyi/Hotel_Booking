@@ -28,7 +28,7 @@ SECRET_KEY = config('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0']
 
 
 # Application definition
@@ -91,6 +91,9 @@ CHANNEL_LAYERS = {
     },
 }
 
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+]
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases

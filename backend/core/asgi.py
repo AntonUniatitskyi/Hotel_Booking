@@ -13,13 +13,17 @@ from django.core.asgi import get_asgi_application
 
 from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.auth import AuthMiddlewareStack
-import booking.routing
+from channels.security.websocket import AllowedHostsOriginValidator
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.settings")
+django_asgi_app = get_asgi_application()
+
+from booking import routing
 
 application = ProtocolTypeRouter({
-    "http": get_asgi_application(),
-    "websocket": AuthMiddlewareStack(
-        URLRouter(booking.routing.websocket_urlpatterns)
-    ),
+    "http": django_asgi_app,
+    # "websocket": AuthMiddlewareStack(
+    #     URLRouter(routing.websocket_urlpatterns)
+    # ),
+    "websocket": AllowedHostsOriginValidator(AuthMiddlewareStack(URLRouter(routing.websocket_urlpatterns)))
 })
