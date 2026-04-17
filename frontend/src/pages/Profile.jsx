@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Box, Typography, Container, Card, CardContent, CircularProgress, Chip, Divider, Button } from '@mui/material';
-import axios from 'axios';
+import api from '../api'; // Підключаємо наш магічний перехоплювач!
 
 export default function Profile() {
     const [bookings, setBookings] = useState([]);
@@ -8,19 +8,15 @@ export default function Profile() {
 
     useEffect(() => {
         const fetchMyBookings = async () => {
-            const token = localStorage.getItem('token');
-
-            if (!token) {
+            // Базова перевірка, чи взагалі є сенс робити запит
+            if (!localStorage.getItem('token')) {
                 setLoading(false);
                 return;
             }
 
             try {
-                const response = await axios.get('http://localhost:8000/api/bookings/', {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                });
+                // Магія: api сам підставить http://localhost:8000/api/ та токен у заголовок!
+                const response = await api.get('bookings/');
 
                 console.log("Мої бронювання з бекенду:", response.data);
                 const bookingsData = Array.isArray(response.data) ? response.data : response.data.results || [];
@@ -102,7 +98,7 @@ export default function Profile() {
                                     </Typography>
                                 </Box>
 
-                                {/* КНОПКА ЗАВАНТАЖЕННЯ PDF (Виводиться тільки для підтверджених) */}
+                                {/* КНОПКА ЗАВАНТАЖЕННЯ PDF */}
                                 {booking.approved === true && (
                                     <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
                                         <Button
@@ -110,15 +106,11 @@ export default function Profile() {
                                             color="primary"
                                             onClick={async () => {
                                                 try {
-                                                    const token = localStorage.getItem('token');
-
-                                                    // Запитуємо файл (blob)
-                                                    const response = await axios.get(`http://localhost:8000/api/bookings/${booking.id}/download_invoice/`, {
-                                                        headers: { Authorization: `Bearer ${token}` },
+                                                    // Завантажуємо PDF через наш api.js (без ручного токена)
+                                                    const response = await api.get(`bookings/${booking.id}/download_invoice/`, {
                                                         responseType: 'blob'
                                                     });
 
-                                                    // Магія збереження файлу
                                                     const url = window.URL.createObjectURL(new Blob([response.data]));
                                                     const link = document.createElement('a');
                                                     link.href = url;
@@ -137,7 +129,6 @@ export default function Profile() {
                                         </Button>
                                     </Box>
                                 )}
-
                             </CardContent>
                         </Card>
                     ))}

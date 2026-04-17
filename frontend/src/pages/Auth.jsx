@@ -1,16 +1,11 @@
 import { useState } from 'react';
-import { Box, TextField, Button, Typography, Container, Paper, FormControlLabel, Checkbox } from '@mui/material';
+import { Box, TextField, Button, Typography, Container, Paper } from '@mui/material';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 export default function Auth() {
-    // Стан для перемикання між Входом та Реєстрацією
     const [isLogin, setIsLogin] = useState(true);
 
-    // Стан для визначення, чи це вхід для адміністратора
-    const [isAdminLogin, setIsAdminLogin] = useState(false);
-
-    // Стан для даних форми
     const [formData, setFormData] = useState({
         username: '',
         email: '',
@@ -22,54 +17,60 @@ export default function Auth() {
 
     const navigate = useNavigate();
 
-    // Функція для оновлення даних при вводі
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-    // Функція відправки даних на бекенд
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        let url = '';
-        let dataToSend = {};
-
         if (!isLogin) {
-            // РЕЄСТРАЦІЯ (Доступна тільки для клієнтів)
-            url = 'http://localhost:8000/api/register/client/';
-            dataToSend = formData; // Відправляємо всі поля
-        } else {
-            // ВХІД (Перевіряємо чекбокс Адміна)
-            url = isAdminLogin
-                ? 'http://localhost:8000/api/login/admin/'
-                : 'http://localhost:8000/api/login/client/';
-            // При вході відправляємо лише логін та пароль
-            dataToSend = { username: formData.username, password: formData.password };
-        }
+            // --- РЕЄСТРАЦІЯ ---
+            try {
+                const dataToSend = {
+                    ...formData,
+                    age: parseInt(formData.age, 10) || 0 // Конвертуємо рядок у число!
+                };
 
-        try {
-            const response = await axios.post(url, dataToSend);
-            console.log("Відповідь бекенду:", response.data);
+                // URL реєстрації залишився старим
+                const response = await axios.post('http://localhost:8000/api/register/client/', dataToSend);
+                console.log("Відповідь бекенду:", response.data);
 
-            if (isLogin) {
-                // Зберігаємо токен
-                const token = response.data.access || response.data.token || response.data.access_token;
-                if (token) {
-                    localStorage.setItem('token', token);
-                    // НОВИЙ РЯДОК: Зберігаємо роль, щоб знати, хто є хто
-                    localStorage.setItem('role', isAdminLogin ? 'admin' : 'client');
-                }
-
-                alert(isAdminLogin ? "Ви успішно увійшли як Адміністратор! 👑" : "Ви успішно увійшли!");
-                navigate('/');
-            } else {
                 alert("Реєстрація успішна! Тепер увійдіть зі своїми даними.");
                 setIsLogin(true); // Перекидаємо на форму входу
+
+            } catch (error) {
+                console.error("Помилка реєстрації:", error.response?.data);
+                alert("Помилка реєстрації! Перевірте правильність введених даних.");
             }
 
-        } catch (error) {
-            console.error("Помилка:", error.response?.data);
-            alert("Помилка авторизації! Перевірте правильність введених даних.");
+        } else {
+            // --- ВХІД (НОВИЙ ЄДИНИЙ URL) ---
+            try {
+                // Відправляємо тільки логін і пароль на нову адресу
+                const response = await axios.post('http://localhost:8000/api/login/', {
+                    username: formData.username,
+                    password: formData.password
+                });
+
+                const token = response.data.access || response.data.token || response.data.access_token;
+                const refresh = response.data.refresh;
+
+                if (token) {
+                    localStorage.setItem('token', token);
+                    if (refresh) localStorage.setItem('refresh', refresh);
+
+                    // ТИМЧАСОВО: Записуємо всім статус клієнта, щоб просто розблокувати сайт
+                    localStorage.setItem('role', 'client');
+                }
+
+                alert("Ви успішно увійшли!");
+                window.location.href = '/'; // Жорстко перекидаємо на головну
+
+            } catch (error) {
+                console.error("Помилка логіну:", error.response?.data);
+                alert("Невірний логін або пароль!");
+            }
         }
     };
 
@@ -91,7 +92,6 @@ export default function Auth() {
                         onChange={handleChange}
                     />
 
-                    {/* Ці поля показуємо ТІЛЬКИ при реєстрації */}
                     {!isLogin && (
                         <>
                             <TextField margin="normal" required fullWidth label="Ім'я" name="first_name" value={formData.first_name} onChange={handleChange} />
@@ -111,21 +111,6 @@ export default function Auth() {
                         value={formData.password}
                         onChange={handleChange}
                     />
-
-                    {/* Чекбокс для адміна показуємо ТІЛЬКИ при вході */}
-                    {isLogin && (
-                        <FormControlLabel
-                            control={
-                                <Checkbox
-                                    checked={isAdminLogin}
-                                    onChange={(e) => setIsAdminLogin(e.target.checked)}
-                                    color="primary"
-                                />
-                            }
-                            label="Увійти як адміністратор"
-                            sx={{ mt: 1 }}
-                        />
-                    )}
 
                     <Button type="submit" fullWidth variant="contained" color="primary" sx={{ mt: 3, mb: 2, py: 1.5 }}>
                         {isLogin ? 'Увійти' : 'Зареєструватися'}
