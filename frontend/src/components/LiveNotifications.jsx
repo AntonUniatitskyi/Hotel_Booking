@@ -7,7 +7,9 @@ export default function LiveNotifications() {
 
     useEffect(() => {
         // Відкриваємо "трубу" до бекенду
-        const ws = new WebSocket('ws://localhost:8000/ws/notifications/');
+        const token = localStorage.getItem('token');
+
+        const ws = new WebSocket(`ws://localhost:8000/ws/notifications/?token=${token}`);
 
         ws.onopen = () => {
             console.log('✅ Підключено до живих сповіщень (WebSockets)');
