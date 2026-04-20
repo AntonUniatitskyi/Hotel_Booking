@@ -1,15 +1,28 @@
 from rest_framework import serializers
-from .models import Hostel, HostelImage, Room, Client, Booking, RoomImage, Notification
+
+from .models import Hostel, HostelImage, Room, Client, Booking, RoomImage, Notification, Reviews
 from django.utils import timezone
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 from django.contrib.auth.models import User
-from django.db.models import Q, Sum
+from django.db.models import Q, Sum, Avg
 
 class HostelImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = HostelImage
         fields = ['id', 'image']
+
+class ReviewsSerializer(serializers.ModelSerializer):
+    user_name = serializers.CharField(source='user.username', read_only=True)
+    class Meta:
+        model = Reviews
+        fields = ['id', 'user_name', 'rating', 'text', 'created_at', 'hostel']
+        read_only_fields = ['id', 'user_name', 'created_at']
+
+    def validate_rating(self, value):
+        if not (1 <= value <= 5):
+            raise serializers.ValidationError("Рейтинг має бути від 1 до 5.")
+        return value
 
 class RoomImageSerializer(serializers.ModelSerializer):
     class Meta:
@@ -38,13 +51,20 @@ class HostelSerializer(serializers.ModelSerializer):
     free_seats = serializers.SerializerMethodField()
     rooms = RoomSerializer(many=True, read_only=True)
     gallery_images = HostelImageSerializer(many=True, read_only=True)
+    reviews = ReviewsSerializer(many=True, read_only=True)
+
+    average_rating = serializers.SerializerMethodField()
 
     class Meta:
         model = Hostel
-        fields = ['id', 'name', 'about', 'city', 'address', 'main_image', 'free_seats', 'rooms', 'gallery_images', 'is_active']
+        fields = ['id', 'name', 'about', 'city', 'address', 'main_image', 'free_seats', 'rooms', 'gallery_images', 'is_active', 'reviews', 'average_rating']
 
     def get_free_seats(self, obj):
         return obj.rooms.aggregate(total=Sum('bed'))['total'] or 0
+
+    def get_average_rating(self, obj):
+        avg = obj.reviews.aggregate(total=Avg('rating'))['total'] or 0
+        return round(avg, 1) if avg else 0
 
 class BookingSerializer(serializers.ModelSerializer):
     price = serializers.IntegerField(read_only=True)

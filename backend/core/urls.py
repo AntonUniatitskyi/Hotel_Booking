@@ -20,7 +20,7 @@ from django.urls import path, include
 from django.conf.urls.static import static
 from django.conf import settings
 from rest_framework import routers
-from booking.views import BookingViewSet, HostelViewSet, ClientViewSet, RoomViewSet, NotificationViewSet
+from booking.views import BookingViewSet, HostelViewSet, ClientViewSet, RoomViewSet, NotificationViewSet, ReviewsViewSet
 from booking.serializers import UniversalTokenObtainView
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 from rest_framework_simplejwt.views import TokenRefreshView
@@ -32,6 +32,7 @@ router.register(r'clients', ClientViewSet)
 router.register(r'bookings', BookingViewSet, basename='booking')
 router.register(r'rooms', RoomViewSet, basename='room')
 router.register(r'notofications', NotificationViewSet, basename='notification')
+router.register(r'reviews', ReviewsViewSet, basename='review')
 
 urlpatterns = [
     path("admin/", admin.site.urls),

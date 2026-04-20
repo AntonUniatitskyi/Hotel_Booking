@@ -9,17 +9,46 @@ from rest_framework import filters, generics, status, viewsets
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from .permissions import IsAdminOrReadOnly, IsClientOrAdmin
+from .permissions import IsAdminOrReadOnly, IsClientOrAdmin, IsAuthorOrReadOnly
 from rest_framework.parsers import MultiPartParser, FormParser
 
-from .models import Booking, Client, Hostel, Room, RoomImage
+from .models import Booking, Client, Hostel, Room, RoomImage, Reviews
 from .serializers import (BookingSerializer, ClientSerializer,
-                          HostelSerializer, RegisterSerializer, RoomSerializer, NotificationSerializer)
+                          HostelSerializer, RegisterSerializer,
+                          RoomSerializer, NotificationSerializer,
+                          ReviewsSerializer)
 
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.pagination import PageNumberPagination
 from .services.pdf_service import InvoicePDFGenerator
+
+
+class ReviewsPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 50
+
+
+class ReviewsViewSet(viewsets.ModelViewSet):
+    serializer_class = ReviewsSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly]
+    pagination_class = ReviewsPagination
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['hostel']
+
+    def get_queryset(self):
+        return Reviews.objects.select_related('user', 'hostel').all()
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    def update(self, request, *args, **kwargs):
+        kwargs['partial'] = True
+        return super().update(request, *args, **kwargs)
+
+
 class RoomViewSet(viewsets.ModelViewSet):
     serializer_class = RoomSerializer
     filterset_fields = ['hostel']
@@ -31,7 +60,6 @@ class RoomViewSet(viewsets.ModelViewSet):
 
         if user.is_staff:
             return Room.objects.filter(hostel__admin=user)
-
         return Room.objects.all()
 
     def perform_create(self, serializer):
@@ -73,6 +101,27 @@ class HostelViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(admin=self.request.user)
 
+    @action(detail=True, methods=['post'], parser_classes=[MultiPartParser])
+    def upload_image(self, request, pk=None):
+        hostel = self.get_object()
+        images = request.FILES.getlist('images')
+
+        if not images:
+            return Response({"error": "Фото не передані"}, status=400)
+
+        created= []
+        for image in images:
+            obj = HostelImage.objects.create(hostel=hostel, image=image)
+            created.append(HostelImageSerializer(obj).data)
+
+        return Response(created, status=201)
+
+    @action(detail=True, methods=['delete'], url_path='delete_image/(?P<image_id>[^/.]+)')
+    def delete_image(self, request, pk=None, image_id=None):
+        hostel = self.get_object()
+        image = get_object_or_404(HostelImage, id=image_id, hostel=hostel)
+        image.delete()
+        return Response(status=204)
 
     @action(detail=True, methods=['get'])
     def availability(self, request, pk=None):
@@ -106,6 +155,7 @@ class HostelViewSet(viewsets.ModelViewSet):
             "booked_rooms": RoomSerializer(booked_rooms, many=True).data,
             "booked_details": BookingSerializer(active_bookings, many=True).data
         })
+
 
 class ClientViewSet(viewsets.ModelViewSet):
     queryset = Client.objects.all()

@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.conf import settings
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.contrib.auth.hashers import make_password, check_password
 
 class Client(models.Model):
@@ -102,14 +103,21 @@ class Booking(models.Model):
     def __str__(self) -> str:
         return f"{self.client}, {self.room}, {self.price}, {self.start_date}, {self.last_date}, {self.created_at}"
 
-class Comment(models.Model):
-    client = models.ForeignKey(Client, on_delete=models.CASCADE, null=True, blank=True)
-    hostel = models.ForeignKey(Hostel, on_delete=models.CASCADE, related_name="comments")
-    comment = models.TextField(max_length=300, verbose_name="Ваш коментар")
-    comment_date = models.DateTimeField(auto_now_add=True)
+class Reviews(models.Model):
+    hostel = models.ForeignKey(Hostel, on_delete=models.CASCADE, related_name="reviews")
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    rating = models.IntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(5)]
+    )
+    text = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('hostel', 'user')
+        ordering = ['-created_at']
 
     def __str__(self):
-        return f"{self.comment}, {self.comment_date}"
+        return f"Відгук від {self.user.username} на {self.hostel.name}"
 
 class PromoParticipant(models.Model):
     name = models.CharField(max_length=100)

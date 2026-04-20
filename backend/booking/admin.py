@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Client, Booking, Hostel, Room, RoomImage, PromoParticipant, Notification
+from .models import Client, Booking, Hostel, Room, RoomImage, PromoParticipant, Notification, Reviews
 
 class RoomImageInline(admin.TabularInline):
     model = RoomImage
@@ -15,5 +15,5 @@ admin.site.register(Hostel)
 admin.site.register(Room, RoomAdmin)
 admin.site.register(PromoParticipant)
 admin.site.register(Notification)
-
+admin.site.register(Reviews)
 admin.site.register(RoomImage)
