@@ -2,10 +2,14 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { CssBaseline } from '@mui/material';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
-import HotelDetails from './pages/HotelDetails';
+import BookNow from './pages/BookNow.jsx';
 import Auth from './pages/Auth';
-import Profile from './pages/Profile';
+import MyBookings from './pages/MyBookings.jsx';
 import LiveNotifications from './components/LiveNotifications';
+import HotelDetails from './pages/HotelDetails';
+import Profile from './pages/Profile';
+
+
 
 // ДОДАЄМО НАШІ НОВІ ІМПОРТИ (перевір, щоб шляхи співпадали з твоїми папками):
 import ProtectedRoute from './components/ProtectedRoute';
@@ -23,9 +27,9 @@ function App() {
                 <Route path="/" element={<Home />} />
                 <Route path="/login" element={<Auth />} />
                 <Route path="/profile" element={<Profile />} />
-                <Route path="/hotels/:id" element={<HotelDetails />} />
+                <Route path="/hotels/:id" element={<BookNow />} />
+                <Route path="/hostel/:id" element={<HotelDetails />} />
 
-                {/* --- ОСЬ НАШ ЗАХИЩЕНИЙ МАРШРУТ ДЛЯ АДМІНА --- */}
                 <Route
                     path="/admin/dashboard"
                     element={
@@ -40,5 +44,7 @@ function App() {
         </BrowserRouter>
     );
 }
+
+
 
 export default App;

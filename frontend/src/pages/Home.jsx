@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Box, Typography, Container, Grid, Card, CardMedia, CardContent, Button } from '@mui/material';
-import axios from 'axios';
 import { Link } from 'react-router-dom';
-
+import api from '../api'; // Використовуємо наш налаштований api замість чистого axios
 
 export default function Home() {
     const [hotels, setHotels] = useState([]);
@@ -11,16 +10,18 @@ export default function Home() {
     const userRole = localStorage.getItem('role');
 
     useEffect(() => {
-        axios.get('http://localhost:8000/api/hostels/')
+        // api.js сам підставить http://localhost:8000/api/
+        api.get('hostels/')
             .then(response => {
                 const data = response.data.results ? response.data.results : response.data;
-                setHotels(data);
+                // Невеличкий бонус: показуємо тільки активні готелі
+                const activeHotels = data.filter(hotel => hotel.is_active !== false);
+                setHotels(activeHotels);
             })
             .catch(error => {
                 console.error("Помилка при завантаженні готелів:", error);
             });
     }, []);
-
 
     return (
         <Box>
@@ -72,22 +73,31 @@ export default function Home() {
                                         {hotel.city}, {hotel.address}
                                     </Typography>
 
-                                    {/* Блок з кнопкою або написом для адміна */}
+                                    {/* Блок з кнопками */}
                                     <Box sx={{ mt: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <Typography variant="h6" color="primary.main" fontWeight="bold" component={Link} to={`/hotels/${hotel.id}`} sx={{ textDecoration: 'none' }}>
-                                            Детальніше
-                                        </Typography>
 
-                                        {/* ЛОГІКА РОЛЕЙ ТУТ */}
+                                        {/* Кнопка ДЕТАЛЬНІШЕ (веде на нову сторінку готелю) */}
+                                        <Button
+                                            component={Link}
+                                            to={`/hostel/${hotel.id}`}
+                                            variant="text"
+                                            color="primary"
+                                            sx={{ fontWeight: 'bold' }}
+                                        >
+                                            Детальніше
+                                        </Button>
+
+                                        {/* ЛОГІКА РОЛЕЙ ДЛЯ BOOK NOW */}
                                         {userRole === 'admin' ? (
                                             <Typography variant="caption" color="error" sx={{ fontWeight: 'bold' }}>
                                                 Адмін-доступ
                                             </Typography>
                                         ) : (
+                                            /* Кнопка BOOK NOW (веде виключно на форму бронювання) */
                                             <Button
                                                 variant="contained"
                                                 color="warning"
-                                                sx={{ textTransform: 'none', borderRadius: 2 }}
+                                                sx={{ textTransform: 'none', borderRadius: 2, fontWeight: 'bold' }}
                                                 component={Link}
                                                 to={`/hotels/${hotel.id}`}
                                             >

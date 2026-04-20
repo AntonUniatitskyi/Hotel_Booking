@@ -1,200 +1,103 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { Box, Typography, Container, Card, CardMedia, TextField,  CardContent, Button, CircularProgress, Divider, Chip, Grid } from '@mui/material';
-import axios from 'axios';
+import { useParams, Link } from 'react-router-dom';
+import { Container, Typography, Box, CircularProgress, Grid, Paper, Divider, Button } from '@mui/material';
+import api from '../api'; // Наш файл з токенами
 
 export default function HotelDetails() {
-    const { id } = useParams();
+    const { id } = useParams(); // Дістаємо ID готелю з URL (наприклад, /hostel/5)
     const [hotel, setHotel] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [startDate, setStartDate] = useState('');
-    const [lastDate, setLastDate] = useState('');
-
-    // Дістаємо "бейджик" користувача
-    const userRole = localStorage.getItem('role');
-
-    const getImageUrl = (imagePath) => {
-        if (!imagePath) return "https://placehold.co/600x400?text=No+Image";
-        if (imagePath.startsWith('http')) return imagePath;
-        return `http://localhost:8000${imagePath}`;
-    };
-
-    const handleBookRoom = async (roomId) => {
-        // Захист від "хитрих" адмінів
-        if (userRole === 'admin') {
-            alert("Адміністратори не можуть створювати бронювання з клієнтського сайту.");
-            return;
-        }
-
-        const token = localStorage.getItem('token');
-
-        if (!token) {
-            alert("Будь ласка, увійдіть в акаунт або зареєструйтесь, щоб забронювати кімнату.");
-            return;
-        }
-
-        if (!startDate || !lastDate) {
-            alert("Будь ласка, оберіть дати заїзду та виїзду перед бронюванням!");
-            return;
-        }
-
-        try {
-            const response = await axios.post(
-                'http://localhost:8000/api/bookings/',
-                {
-                    room: roomId,
-                    start_date: startDate,
-                    last_date: lastDate
-                },
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                }
-            );
-
-            console.log("Відповідь бекенду:", response.data);
-            alert("🎉 Кімната успішно забронювана!");
-
-        } catch (error) {
-            console.error("Помилка бронювання:", error.response?.data);
-            alert("Помилка бронювання! Відкрий консоль (F12), щоб дізнатися деталі.");
-        }
-    };
 
     useEffect(() => {
-        axios.get(`http://localhost:8000/api/hostels/${id}/`)
-            .then(response => {
+        const fetchHotelDetails = async () => {
+            try {
+                // Робимо GET-запит за конкретним готелем
+                const response = await api.get(`hostels/${id}/`);
                 setHotel(response.data);
+            } catch (error) {
+                console.error("Помилка завантаження деталей:", error);
+            } finally {
                 setLoading(false);
-            })
-            .catch(error => {
-                console.error("Помилка:", error);
-                setLoading(false);
-            });
+            }
+        };
+
+        fetchHotelDetails();
     }, [id]);
 
-    if (loading) {
-        return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 10 }}><CircularProgress /></Box>;
-    }
-
-    if (!hotel) {
-        return <Typography variant="h5" align="center" sx={{ mt: 10 }}>Готель не знайдено :(</Typography>;
-    }
+    if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 10 }}><CircularProgress /></Box>;
+    if (!hotel) return <Typography variant="h5" align="center" mt={5}>Готель не знайдено 😢</Typography>;
 
     return (
-        <Container sx={{ mt: 4, mb: 8 }}>
+        <Container maxWidth="lg" sx={{ mt: 5, mb: 10 }}>
             {/* ЗАГОЛОВОК І ГОЛОВНЕ ФОТО */}
-            <Typography variant="h3" fontWeight="bold" gutterBottom>
-                {hotel.name}
-            </Typography>
-            <Typography variant="h6" color="text.secondary" gutterBottom>
+            <Typography variant="h3" fontWeight="bold" gutterBottom>{hotel.name}</Typography>
+            <Typography variant="subtitle1" color="text.secondary" gutterBottom>
                 📍 {hotel.city}, {hotel.address}
             </Typography>
 
             <Box
                 component="img"
-                src={getImageUrl(hotel.main_image)}
+                src={hotel.main_image}
                 alt={hotel.name}
-                sx={{ width: '100%', height: { xs: '300px', md: '500px' }, objectFit: 'cover', borderRadius: 3, mb: 4, boxShadow: 3 }}
+                sx={{ width: '100%', height: '400px', objectFit: 'cover', borderRadius: 3, mb: 4 }}
             />
 
-            {/* ОПИС */}
-            <Typography variant="h5" fontWeight="bold" gutterBottom>Про готель</Typography>
-            <Typography variant="body1" sx={{ mb: 4, whiteSpace: 'pre-line' }}>
-                {hotel.about || "Опис поки відсутній."}
-            </Typography>
+            <Grid container spacing={4}>
+                {/* ЛІВА КОЛОНКА: Опис та Галерея */}
+                <Grid item xs={12} md={8}>
+                    <Paper sx={{ p: 3, mb: 4, boxShadow: 2 }}>
+                        <Typography variant="h5" fontWeight="bold" gutterBottom>Про готель</Typography>
+                        <Divider sx={{ mb: 2 }} />
+                        <Typography variant="body1" sx={{ whiteSpace: 'pre-line' }}>
+                            {hotel.about}
+                        </Typography>
+                    </Paper>
 
-            <Divider sx={{ mb: 4 }} />
+                    {/* ТУТ БУДЕ ГАЛЕРЕЯ ФОТОГРАФІЙ */}
+                    <Paper sx={{ p: 3, mb: 4, boxShadow: 2 }}>
+                        <Typography variant="h5" fontWeight="bold" gutterBottom>Галерея</Typography>
+                        <Divider sx={{ mb: 2 }} />
+                        {hotel.gallery_images && hotel.gallery_images.length > 0 ? (
+                            <Box sx={{ display: 'flex', gap: 2, overflowX: 'auto', pb: 2 }}>
+                                {hotel.gallery_images.map(img => (
+                                    <Box key={img.id} component="img" src={img.image} sx={{ width: 200, height: 150, borderRadius: 2, objectFit: 'cover' }} />
+                                ))}
+                            </Box>
+                        ) : (
+                            <Typography color="text.secondary">Фотографій поки немає.</Typography>
+                        )}
+                    </Paper>
 
-            {/* ДОСТУПНІ КІМНАТИ */}
-            <Typography variant="h4" fontWeight="bold" gutterBottom sx={{ mb: 3 }}>
-                Доступні кімнати ({hotel.free_seats} вільних місць)
-            </Typography>
-
-            {/* ЛОГІКА РОЛЕЙ: Показуємо вибір дат ТІЛЬКИ для клієнтів (не адмінів) */}
-            {userRole === 'admin' ? (
-                <Typography variant="body1" color="error" sx={{ mb: 4, fontWeight: 'bold', p: 2, bgcolor: '#ffebee', borderRadius: 2 }}>
-                    👑 Ви переглядаєте цю сторінку як Адміністратор. Функція бронювання прихована.
-                </Typography>
-            ) : (
-                <Box sx={{ display: 'flex', gap: 2, mb: 4, flexWrap: 'wrap' }}>
-                    <TextField
-                        label="Дата заїзду"
-                        type="date"
-                        InputLabelProps={{ shrink: true }}
-                        value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
-                        sx={{ minWidth: 200 }}
-                    />
-                    <TextField
-                        label="Дата виїзду"
-                        type="date"
-                        InputLabelProps={{ shrink: true }}
-                        value={lastDate}
-                        onChange={(e) => setLastDate(e.target.value)}
-                        sx={{ minWidth: 200 }}
-                    />
-                </Box>
-            )}
-
-            {hotel.rooms && hotel.rooms.length > 0 ? (
-                <Grid container spacing={3}>
-                    {hotel.rooms.map((room) => (
-                        <Grid item xs={12} sm={6} md={4} key={room.id}>
-                            <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', boxShadow: 2 }}>
-                                <CardMedia
-                                    component="img"
-                                    height="200"
-                                    image={getImageUrl(room.preview)}
-                                    alt={`Кімната ${room.number}`}
-                                />
-                                <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-                                    <Typography variant="h6" fontWeight="bold">Кімната №{room.number}</Typography>
-                                    <Box sx={{ mt: 1, mb: 2 }}>
-                                        <Chip label={`🛏️ ${room.bed} місця`} color="info" size="small" sx={{ mr: 1 }} />
-                                        <Chip label={`💰 ${room.price} грн/ніч`} color="success" size="small" />
-                                    </Box>
-
-                                    {room.images && room.images.length > 0 && (
-                                        <Box sx={{ mt: 2, mb: 2 }}>
-                                            <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
-                                                Додаткові фото:
-                                            </Typography>
-                                            <Box sx={{ display: 'flex', gap: 1, overflowX: 'auto', pb: 1 }}>
-                                                {room.images.map((imgItem) => (
-                                                    <Box
-                                                        key={imgItem.id}
-                                                        component="img"
-                                                        src={getImageUrl(imgItem.image)}
-                                                        alt="Фото кімнати"
-                                                        sx={{ width: 80, height: 60, objectFit: 'cover', borderRadius: 1, flexShrink: 0, boxShadow: 1 }}
-                                                    />
-                                                ))}
-                                            </Box>
-                                        </Box>
-                                    )}
-
-                                    {/* ЛОГІКА РОЛЕЙ: Ховаємо кнопку від адміна */}
-                                    {userRole !== 'admin' && (
-                                        <Button
-                                            variant="contained"
-                                            color="warning"
-                                            fullWidth
-                                            sx={{ mt: 'auto', borderRadius: 2 }}
-                                            onClick={() => handleBookRoom(room.id)}
-                                        >
-                                            Забронювати
-                                        </Button>
-                                    )}
-                                </CardContent>
-                            </Card>
-                        </Grid>
-                    ))}
+                    {/* ТУТ БУДУТЬ ВІДГУКИ */}
+                    <Paper sx={{ p: 3, boxShadow: 2 }}>
+                        <Typography variant="h5" fontWeight="bold" gutterBottom>Відгуки клієнтів ⭐</Typography>
+                        <Divider sx={{ mb: 2 }} />
+                        <Typography color="text.secondary">
+                            (Незабаром тут з'являться відгуки реальних відвідувачів)
+                        </Typography>
+                    </Paper>
                 </Grid>
-            ) : (
-                <Typography variant="body1" color="text.secondary">У цьому готелі поки немає доданих кімнат.</Typography>
-            )}
+
+                {/* ПРАВА КОЛОНКА: Кнопка швидкого бронювання */}
+                <Grid item xs={12} md={4}>
+                    <Paper sx={{ p: 3, boxShadow: 3, position: 'sticky', top: 20 }}>
+                        <Typography variant="h6" fontWeight="bold" gutterBottom>Готові зупинитися тут?</Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                            Перегляньте доступні кімнати та забронюйте ідеальний варіант.
+                        </Typography>
+                        <Button
+                            component={Link}
+                            to={`/hotels/${hotel.id}`}
+                            variant="contained"
+                            color="warning"
+                            fullWidth
+                            size="large"
+                        >
+                            Забронювати номер
+                        </Button>
+                    </Paper>
+                </Grid>
+            </Grid>
         </Container>
     );
 }

@@ -4,38 +4,39 @@ import { Snackbar, Alert } from '@mui/material';
 export default function LiveNotifications() {
     const [open, setOpen] = useState(false);
     const [message, setMessage] = useState('');
+    const [severity, setSeverity] = useState('info'); // Колір за замовчуванням (синій)
 
     useEffect(() => {
-        // Відкриваємо "трубу" до бекенду
         const token = localStorage.getItem('token');
+        if (!token) return; // Не підключаємось, якщо юзер не залогінений
 
         const ws = new WebSocket(`ws://localhost:8000/ws/notifications/?token=${token}`);
 
-        ws.onopen = () => {
-            console.log('✅ Підключено до живих сповіщень (WebSockets)');
-        };
+        ws.onopen = () => console.log('✅ Підключено до живих сповіщень');
 
-        // Коли бекенд щось надсилає (наприклад, адмін апрувнув заявку)
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data);
             console.log('🔔 Отримано сповіщення:', data);
 
-            // Формуємо текст і показуємо плашку
             setMessage(`${data.title}: ${data.message}`);
+
+            // Визначаємо колір плашки в залежності від тексту або типу
+            if (data.message.toLowerCase().includes('відхилено')) {
+                setSeverity('error');
+            } else if (data.message.toLowerCase().includes('схвалено')) {
+                setSeverity('success');
+            } else {
+                setSeverity('info');
+            }
+
             setOpen(true);
         };
 
-        ws.onclose = () => {
-            console.log('❌ Зв`язок зі сповіщеннями втрачено');
-        };
+        ws.onclose = () => console.log('❌ Зв`язок зі сповіщеннями втрачено');
 
-        // Закриваємо з'єднання, якщо користувач пішов із сайту
-        return () => {
-            ws.close();
-        };
+        return () => ws.close();
     }, []);
 
-    // Якщо користувач закрив плашку хрестиком
     const handleClose = (event, reason) => {
         if (reason === 'clickaway') return;
         setOpen(false);
@@ -44,11 +45,11 @@ export default function LiveNotifications() {
     return (
         <Snackbar
             open={open}
-            autoHideDuration={6000} // Зникне саме через 6 секунд
+            autoHideDuration={6000}
             onClose={handleClose}
-            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} // Виїжджає знизу справа
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         >
-            <Alert onClose={handleClose} severity="success" sx={{ width: '100%', fontWeight: 'bold' }} variant="filled">
+            <Alert onClose={handleClose} severity={severity} sx={{ width: '100%', fontWeight: 'bold' }} variant="filled">
                 {message}
             </Alert>
         </Snackbar>
