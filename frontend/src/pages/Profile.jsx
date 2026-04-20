@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
     Container, Typography, Paper, Box, CircularProgress,
-    Tabs, Tab, Avatar, Grid, Card, CardContent, Divider, Chip, List, ListItem, ListItemText, ListItemIcon, Button // <--- ДОДАЛИ BUTTON СЮДИ!
+    Tabs, Tab, Avatar, Grid, Card, CardContent, Divider, Chip, List, ListItem, ListItemText, ListItemIcon, Button
 } from '@mui/material';
 import HotelIcon from '@mui/icons-material/Hotel';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
@@ -53,7 +53,6 @@ export default function UserProfile() {
         return <Chip label="Очікує" color="warning" size="small" />;
     };
 
-    // Розкоментована функція видалення
     const handleDeleteAccount = async () => {
         const confirmDelete = window.confirm(
             "⚠️ Ви впевнені, що хочете назавжди видалити свій акаунт?\nУсі ваші дані та бронювання будуть втрачені. Цю дію неможливо скасувати!"
@@ -144,7 +143,7 @@ export default function UserProfile() {
                         )}
                     </Grid>
 
-                    {/* Розкоментований блок: НЕБЕЗПЕЧНА ЗОНА */}
+                    {/* НЕБЕЗПЕЧНА ЗОНА */}
                     <Box sx={{ mt: 5, pt: 3, borderTop: '1px solid', borderColor: 'error.light' }}>
                         <Typography variant="subtitle1" color="error" fontWeight="bold" gutterBottom>
                             Небезпечна зона
@@ -162,6 +161,7 @@ export default function UserProfile() {
                     </Box>
                 </Paper>
             )}
+
             {/* ВКЛАДКА 1: БРОНЮВАННЯ */}
             {currentTab === 1 && (
                 <Box>
@@ -184,11 +184,44 @@ export default function UserProfile() {
                                                     <b>Дати:</b> {booking.start_date} — {booking.last_date}
                                                 </Typography>
                                             </Box>
-                                            <Box sx={{ textAlign: 'right' }}>
-                                                <Typography variant="h6" color="primary.main" fontWeight="bold" gutterBottom>
+
+                                            {/* Права частина картки з ціною, статусом і кнопкою PDF */}
+                                            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1 }}>
+                                                <Typography variant="h6" color="primary.main" fontWeight="bold">
                                                     {booking.price} грн
                                                 </Typography>
+
                                                 {renderStatus(booking.approved)}
+
+                                                {/* КНОПКА ЗАВАНТАЖЕННЯ PDF (з'являється тільки якщо схвалено) */}
+                                                {booking.approved === true && (
+                                                    <Button
+                                                        size="small"
+                                                        variant="outlined"
+                                                        color="primary"
+                                                        onClick={async () => {
+                                                            try {
+                                                                const response = await api.get(`bookings/${booking.id}/download_invoice/`, {
+                                                                    responseType: 'blob'
+                                                                });
+
+                                                                const url = window.URL.createObjectURL(new Blob([response.data]));
+                                                                const link = document.createElement('a');
+                                                                link.href = url;
+                                                                link.setAttribute('download', `invoice_booking_${booking.id}.pdf`);
+                                                                document.body.appendChild(link);
+                                                                link.click();
+                                                                link.parentNode.removeChild(link);
+
+                                                            } catch (error) {
+                                                                console.error("Помилка завантаження PDF:", error);
+                                                                alert("Не вдалося завантажити квитанцію. Можливо, вона ще не згенерована.");
+                                                            }
+                                                        }}
+                                                    >
+                                                        📄 Квитанція
+                                                    </Button>
+                                                )}
                                             </Box>
                                         </CardContent>
                                     </Card>
