@@ -29,6 +29,9 @@ class RoomImageSerializer(serializers.ModelSerializer):
         model = RoomImage
         fields = ['id', 'image']
 
+class DeleteAccountSerializer(serializers.Serializer):
+    password = serializers.CharField(write_only=True, required=True)
+
 class ClientSerializer(serializers.ModelSerializer):
     first_name = serializers.ReadOnlyField()
     last_name = serializers.ReadOnlyField()

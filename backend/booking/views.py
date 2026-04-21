@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 
+from django.db.migrations import serializer
 from django.http import HttpResponse
 from django.db.models import Sum
 from django.shortcuts import get_object_or_404
@@ -11,12 +12,13 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from .permissions import IsAdminOrReadOnly, IsClientOrAdmin, IsAuthorOrReadOnly
 from rest_framework.parsers import MultiPartParser, FormParser
+from drf_spectacular.utils import extend_schema, OpenApiResponse
 
-from .models import Booking, Client, Hostel, Room, RoomImage, Reviews
+from .models import Booking, Client, Hostel, Room, RoomImage, Reviews, HostelImage
 from .serializers import (BookingSerializer, ClientSerializer,
                           HostelSerializer, RegisterSerializer,
                           RoomSerializer, NotificationSerializer,
-                          ReviewsSerializer)
+                          ReviewsSerializer, HostelImageSerializer, DeleteAccountSerializer)
 
 from rest_framework import viewsets, status
 from rest_framework.response import Response
@@ -200,6 +202,34 @@ class ClientViewSet(viewsets.ModelViewSet):
         serializer.save()
 
         return Response(serializer.data)
+
+    @extend_schema(
+        request=DeleteAccountSerializer,
+        responses={
+            204: OpenApiResponse(description="Акаунт видалено"),
+            400: OpenApiResponse(description="Пароль не передано"),
+            403: OpenApiResponse(description="Невірний пароль або адміністратор"),
+        }
+    )
+    @action(detail=False, methods=['delete'], permission_classes=[IsAuthenticated])
+    def delete_me(self, request):
+        user = request.user
+        if user.is_staff or user.is_superuser:
+            return Response(
+                {"error": "Адміністратори не можуть видалити акаунт через цей endpoint."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        serializer = DeleteAccountSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        if not user.check_password(serializer.validated_data['password']):
+            return Response(
+                {"error": "Невірний пароль."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        user.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class BookingViewSet(viewsets.ModelViewSet):
