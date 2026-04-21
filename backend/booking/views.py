@@ -58,11 +58,28 @@ class RoomViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if user.is_superuser:
-            return Room.objects.all()
+            qs = Room.objects.all()
+        elif user.is_staff:
+            qs = Room.objects.filter(hostel__admin=user)
+        else:
+            qs = Room.objects.all()
 
-        if user.is_staff:
-            return Room.objects.filter(hostel__admin=user)
-        return Room.objects.all()
+        check_in = self.request.query_params.get('check_in')
+        check_out = self.request.query_params.get('check_out')
+
+        if check_in and check_out:
+            try:
+                check_in_date = datetime.strptime(check_in, '%Y-%m-%d').date()
+                check_out_date = datetime.strptime(check_out, '%Y-%m-%d').date()
+            except ValueError:
+                return qs
+            booked_room_ids = Booking.objects.filter(
+                start_date__lt=check_out_date,
+                last_date__gt=check_in_date,
+                approved=True  # только подтверждённые брони блокируют номер
+            ).values_list('room_id', flat=True)
+            qs = qs.exclude(id__in=booked_room_ids)
+        return qs
 
     def perform_create(self, serializer):
         hostel = serializer.validated_data.get('hostel')
