@@ -265,13 +265,19 @@ class BookingViewSet(viewsets.ModelViewSet):
         )
 
         if user.is_superuser:
-            return base_qs
+            qs = base_qs
+        elif user.is_staff:
+            qs = base_qs.filter(room__hostel__admin=user)
+        else:
+            return base_qs.filter(client__user=user)
 
-        if user.is_staff:
-            # Адмін бачить бронювання тільки ТИХ номерів,
-            # які належать до ЙОГО готелів
-            return base_qs.filter(room__hostel__admin=user)
-        return base_qs.filter(client__user=user)
+        start_from = self.request.query_params.get('start_from')
+        start_to = self.request.query_params.get('start_to')
+        if start_from:
+            qs = qs.filter(start_date__gte=start_from)
+        if start_to:
+            qs = qs.filter(last_date__lte=start_to)
+        return qs
 
     def destroy(self, request, *args, **kwargs):
         booking = self.get_object()

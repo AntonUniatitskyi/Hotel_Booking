@@ -77,7 +77,7 @@ class BookingSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Booking
-        fields = ['id', 'client', 'room', 'start_date', 'last_date', 'price', 'approved', 'client_details', 'room_details']
+        fields = ['id', 'client', 'room', 'start_date', 'last_date', 'price', 'approved', 'client_details', 'room_details', 'request_text']
 
     def validate(self, attrs):
         instance = self.instance
