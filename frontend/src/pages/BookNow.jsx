@@ -11,7 +11,10 @@ export default function BookNow() {
     const [startDate, setStartDate] = useState('');
     const [lastDate, setLastDate] = useState('');
 
-    // НОВІ СТЕЙТИ ДЛЯ ВІЛЬНИХ КІМНАТ
+    // Стейт для тексту заявки
+    const [requestText, setRequestText] = useState('');
+
+    // Стейти для вільних кімнат
     const [availableRooms, setAvailableRooms] = useState([]);
     const [isSearchingRooms, setIsSearchingRooms] = useState(false);
 
@@ -24,7 +27,7 @@ export default function BookNow() {
     };
 
     // ==========================================
-    // ЗАВАНТАЖЕННЯ ГОТЕЛЮ (тільки інфо, без кімнат)
+    // ЗАВАНТАЖЕННЯ ГОТЕЛЮ (тільки інфо)
     // ==========================================
     useEffect(() => {
         axios.get(`http://localhost:8000/api/hostels/${id}/`)
@@ -43,9 +46,7 @@ export default function BookNow() {
     // ==========================================
     useEffect(() => {
         const fetchAvailableRooms = async () => {
-            // Шукаємо тільки якщо обрано обидві дати
             if (startDate && lastDate) {
-                // Перевірка, щоб дата виїзду була після дати заїзду
                 if (new Date(lastDate) <= new Date(startDate)) {
                     alert("Дата виїзду має бути пізнішою за дату заїзду!");
                     setLastDate('');
@@ -54,7 +55,7 @@ export default function BookNow() {
 
                 setIsSearchingRooms(true);
                 try {
-                    // ЗВЕРНИ УВАГУ: Тепер тут правильні ключі, які очікує бекенд
+                    // ТУТ МАЄ БУТИ GET-ЗАПИТ НА /api/rooms/ (Пошук)
                     const response = await axios.get('http://localhost:8000/api/rooms/', {
                         params: {
                             hostel: id,
@@ -70,7 +71,6 @@ export default function BookNow() {
                     setIsSearchingRooms(false);
                 }
             } else {
-                // Якщо дати стерли - очищаємо список кімнат
                 setAvailableRooms([]);
             }
         };
@@ -94,13 +94,14 @@ export default function BookNow() {
         }
 
         try {
-            // Зверни увагу: для POST-запиту ми залишаємо start_date та last_date
+            // ТУТ МАЄ БУТИ POST-ЗАПИТ НА /api/bookings/ (Створення)
             const response = await axios.post(
                 'http://localhost:8000/api/bookings/',
                 {
                     room: roomId,
                     start_date: startDate,
-                    last_date: lastDate
+                    last_date: lastDate,
+                    request_text: requestText // <--- ВІДПРАВЛЯЄМО КОМЕНТАР ТУТ!
                 },
                 {
                     headers: { Authorization: `Bearer ${token}` }
@@ -109,8 +110,6 @@ export default function BookNow() {
 
             console.log("Відповідь бекенду:", response.data);
             alert("🎉 Кімната успішно забронювана!");
-
-            // Опціонально: після успішного бронювання можна перенаправити клієнта в особистий кабінет
             window.location.href = '/profile';
 
         } catch (error) {
@@ -141,12 +140,13 @@ export default function BookNow() {
                 </Typography>
             ) : (
                 <Box sx={{ p: 3, bgcolor: '#f5f5f5', borderRadius: 2, mb: 4 }}>
-                    <Typography variant="subtitle1" fontWeight="bold" mb={2}>Крок 1: Оберіть дати перебування</Typography>
-                    <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', alignItems: 'center' }}>
+                    <Typography variant="subtitle1" fontWeight="bold" mb={2}>Крок 1: Оберіть дати перебування та побажання</Typography>
+
+                    <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', alignItems: 'center', mb: 3 }}>
                         <TextField
                             label="Дата заїзду" type="date" InputLabelProps={{ shrink: true }}
                             value={startDate} onChange={(e) => setStartDate(e.target.value)}
-                            inputProps={{ min: new Date().toISOString().split('T')[0] }} // Блокуємо минулі дати
+                            inputProps={{ min: new Date().toISOString().split('T')[0] }}
                             sx={{ minWidth: 220, bgcolor: 'white' }}
                         />
                         <TextField
@@ -157,6 +157,18 @@ export default function BookNow() {
                         />
                         {isSearchingRooms && <CircularProgress size={24} />}
                     </Box>
+
+                    {/* ПОЛЕ ДЛЯ ТЕКСТУ ЗАЯВКИ */}
+                    <TextField
+                        fullWidth
+                        multiline
+                        rows={2}
+                        label="Особливі побажання (необов'язково)"
+                        placeholder="Наприклад: Потрібне тихе місце, пізній заїзд тощо..."
+                        value={requestText}
+                        onChange={(e) => setRequestText(e.target.value)}
+                        sx={{ bgcolor: 'white' }}
+                    />
                 </Box>
             )}
 

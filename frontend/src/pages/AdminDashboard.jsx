@@ -9,6 +9,7 @@ import {
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import FilterAltIcon from '@mui/icons-material/FilterAlt'; // НОВА ІКОНКА ДЛЯ ФІЛЬТРІВ
 import api from '../api';
 
 export default function AdminDashboard() {
@@ -17,6 +18,14 @@ export default function AdminDashboard() {
     const [myHostels, setMyHostels] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // ==========================================
+    // НОВІ СТЕЙТИ: ФІЛЬТРИ ДЛЯ ЗАЯВОК
+    // ==========================================
+    const [filterHotel, setFilterHotel] = useState('');
+    const [filterStartDate, setFilterStartDate] = useState('');
+    const [filterLastDate, setFilterLastDate] = useState('');
+    const [filterClientName, setFilterClientName] = useState(''); // Для локального пошуку
 
     // Стейт для форм
     const [hostelForm, setHostelForm] = useState({
@@ -30,12 +39,12 @@ export default function AdminDashboard() {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editingHotel, setEditingHotel] = useState(null);
 
-    // НОВІ СТЕЙТИ: Галерея та завантаження
+    // Галерея та завантаження
     const [uploadingImage, setUploadingImage] = useState(false);
     const [pendingGalleryFiles, setPendingGalleryFiles] = useState([]);
 
     // ==========================================
-    // ЗАВАНТАЖЕННЯ ДАНИХ
+    // ЗАВАНТАЖЕННЯ ДАНИХ ТА ФІЛЬТРАЦІЯ
     // ==========================================
     const loadAllData = async () => {
         setLoading(true);
@@ -55,6 +64,42 @@ export default function AdminDashboard() {
 
     useEffect(() => { loadAllData(); }, []);
 
+    // Функція відправки запиту з фільтрами (Готель та Дати) на бекенд
+    const fetchFilteredBookings = async () => {
+        try {
+            const params = {};
+            if (filterHotel) params.room__hostel = filterHotel;
+            if (filterStartDate) params.start_from = filterStartDate;
+            if (filterLastDate) params.start_to = filterLastDate;
+
+            const response = await api.get('bookings/', { params });
+            setBookings(Array.isArray(response.data) ? response.data : response.data.results || []);
+        } catch (error) {
+            console.error("Помилка фільтрації заявок:", error);
+            alert("Помилка при завантаженні заявок.");
+        }
+    };
+
+    // Очищення всіх фільтрів
+    const clearFilters = () => {
+        setFilterHotel('');
+        setFilterStartDate('');
+        setFilterLastDate('');
+        setFilterClientName('');
+        // Після очищення стейтів робимо запит без параметрів, щоб повернути всі заявки
+        api.get('bookings/').then(res => {
+            setBookings(Array.isArray(res.data) ? res.data : res.data.results || []);
+        });
+    };
+
+    // Локальна фільтрація масиву заявок по ПІБ клієнта перед відображенням
+    const displayedBookings = bookings.filter(b => {
+        if (!filterClientName) return true;
+        const clientName = b.client_details?.fullname?.toLowerCase() || '';
+        return clientName.includes(filterClientName.toLowerCase());
+    });
+
+
     const handleStatusChange = async (bookingId, isApproved) => {
         try {
             await api.patch(`bookings/${bookingId}/`, { approved: isApproved });
@@ -68,45 +113,37 @@ export default function AdminDashboard() {
     // ==========================================
     // ЛОГІКА: КЕРУВАННЯ ГАЛЕРЕЄЮ (MULTIPLE + PREVIEW)
     // ==========================================
-
-    // Обираємо файли локально для прев'ю
     const handleSelectGalleryFiles = (e) => {
         const files = Array.from(e.target.files);
         setPendingGalleryFiles(prev => [...prev, ...files]);
         e.target.value = null;
     };
 
-    // Видалити файл зі списку прев'ю (до завантаження)
     const handleRemovePendingFile = (indexToRemove) => {
         setPendingGalleryFiles(prev => prev.filter((_, index) => index !== indexToRemove));
     };
 
-    // Відправляємо всі обрані фото одним махом
     const handleConfirmUploadGallery = async () => {
         if (pendingGalleryFiles.length === 0) return;
         setUploadingImage(true);
 
         const formData = new FormData();
         pendingGalleryFiles.forEach(file => {
-            formData.append('images', file); // Ключ 'images' як у коді бекенду
+            formData.append('images', file);
         });
 
         try {
             const response = await api.post(`hostels/${editingHotel.id}/upload_image/`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
-
-            // Якщо бек повертає масив створених фото, оновимо стейт
             const updatedGallery = [...(editingHotel.gallery_images || []), ...response.data];
             const updatedHotel = { ...editingHotel, gallery_images: updatedGallery };
-
             setEditingHotel(updatedHotel);
             setMyHostels(prev => prev.map(h => h.id === editingHotel.id ? updatedHotel : h));
             setPendingGalleryFiles([]);
-            alert("Галерея оновлена! 🖼️");
         } catch (error) {
             console.error(error);
-            alert("Помилка завантаження фото. Перевірте консоль.");
+            alert("Помилка завантаження фото.");
         } finally {
             setUploadingImage(false);
         }
@@ -118,7 +155,6 @@ export default function AdminDashboard() {
             await api.delete(`hostels/${editingHotel.id}/delete_image/${imageId}/`);
             const updatedGallery = editingHotel.gallery_images.filter(img => img.id !== imageId);
             const updatedHotel = { ...editingHotel, gallery_images: updatedGallery };
-
             setEditingHotel(updatedHotel);
             setMyHostels(prev => prev.map(h => h.id === editingHotel.id ? updatedHotel : h));
         } catch (error) {
@@ -242,40 +278,117 @@ export default function AdminDashboard() {
 
             {/* ВКЛАДКА 0: ЗАЯВКИ */}
             {currentTab === 0 && (
-                <TableContainer component={Paper}>
-                    <Table>
-                        <TableHead sx={{ backgroundColor: '#f5f5f5' }}>
-                            <TableRow>
-                                <TableCell><b>ID</b></TableCell>
-                                <TableCell><b>Клієнт</b></TableCell>
-                                <TableCell><b>Готель</b></TableCell>
-                                <TableCell><b>Статус</b></TableCell>
-                                <TableCell align="center"><b>Дії</b></TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {bookings.map((b) => (
-                                <TableRow key={b.id}>
-                                    <TableCell>#{b.id}</TableCell>
-                                    <TableCell>{b.client_details?.fullname}</TableCell>
-                                    <TableCell>{b.room_details?.hostel_name}</TableCell>
-                                    <TableCell>
-                                        <Chip label={b.approved === true ? "Схвалено" : b.approved === false ? "Відхилено" : "Очікує"}
-                                              color={b.approved === true ? "success" : b.approved === false ? "error" : "warning"} />
-                                    </TableCell>
-                                    <TableCell align="center">
-                                        {b.approved === null && (
-                                            <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
-                                                <Button size="small" variant="contained" color="success" onClick={() => handleStatusChange(b.id, true)}>✓</Button>
-                                                <Button size="small" variant="outlined" color="error" onClick={() => handleStatusChange(b.id, false)}>✗</Button>
-                                            </Box>
-                                        )}
-                                    </TableCell>
+                <Box>
+                    {/* ПАНЕЛЬ ФІЛЬТРІВ */}
+                    <Box sx={{ p: 2, mb: 3, bgcolor: '#f5f5f5', borderRadius: 2, border: '1px solid #e0e0e0' }}>
+                        <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <FilterAltIcon fontSize="small" /> Пошук та фільтрація
+                        </Typography>
+                        <Grid container spacing={2} alignItems="center">
+                            <Grid item xs={12} sm={3}>
+                                <FormControl fullWidth size="small" sx={{ bgcolor: 'white' }}>
+                                    <InputLabel id="filter-hotel-label">Готель</InputLabel>
+                                    <Select
+                                        labelId="filter-hotel-label"
+                                        value={filterHotel}
+                                        label="Готель"
+                                        onChange={(e) => setFilterHotel(e.target.value)}
+                                    >
+                                        <MenuItem value=""><em>Всі готелі</em></MenuItem>
+                                        {myHostels.map(h => <MenuItem key={h.id} value={h.id}>{h.name}</MenuItem>)}
+                                    </Select>
+                                </FormControl>
+                            </Grid>
+                            <Grid item xs={12} sm={2.5}>
+                                <TextField
+                                    size="small" fullWidth type="date" label="З дати" InputLabelProps={{ shrink: true }}
+                                    value={filterStartDate} onChange={(e) => setFilterStartDate(e.target.value)} sx={{ bgcolor: 'white' }}
+                                />
+                            </Grid>
+                            <Grid item xs={12} sm={2.5}>
+                                <TextField
+                                    size="small" fullWidth type="date" label="По дату" InputLabelProps={{ shrink: true }}
+                                    value={filterLastDate} onChange={(e) => setFilterLastDate(e.target.value)} sx={{ bgcolor: 'white' }}
+                                />
+                            </Grid>
+                            <Grid item xs={12} sm={4}>
+                                <TextField
+                                    size="small" fullWidth label="Локальний пошук клієнта (ПІБ)"
+                                    value={filterClientName} onChange={(e) => setFilterClientName(e.target.value)}
+                                    sx={{ bgcolor: 'white' }} placeholder="Введіть ім'я..."
+                                />
+                            </Grid>
+                        </Grid>
+                        <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                            <Button variant="outlined" color="inherit" onClick={clearFilters}>
+                                Очистити
+                            </Button>
+                            <Button variant="contained" color="primary" onClick={fetchFilteredBookings}>
+                                Застосувати фільтри
+                            </Button>
+                        </Box>
+                    </Box>
+
+                    {/* ТАБЛИЦЯ ЗАЯВОК */}
+                    <TableContainer component={Paper}>
+                        <Table>
+                            <TableHead sx={{ backgroundColor: '#f5f5f5' }}>
+                                <TableRow>
+                                    <TableCell><b>ID</b></TableCell>
+                                    <TableCell><b>Клієнт</b></TableCell>
+                                    <TableCell><b>Готель</b></TableCell>
+                                    <TableCell><b>Статус</b></TableCell>
+                                    <TableCell align="center"><b>Дії</b></TableCell>
                                 </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
+                            </TableHead>
+                            <TableBody>
+                                {/* РЕНДЕРИМО ВІДФІЛЬТРОВАНИЙ МАСИВ (displayedBookings) */}
+                                {displayedBookings.length > 0 ? (
+                                    displayedBookings.map((b) => (
+                                        <TableRow key={b.id}>
+                                            <TableCell>#{b.id}</TableCell>
+                                            <TableCell>
+                                                <Typography variant="body2" fontWeight="bold">
+                                                    {b.client_details?.fullname}
+                                                </Typography>
+                                                {/* Виводимо коментар, якщо він є */}
+                                                {b.request_text && (
+                                                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5, fontStyle: 'italic', maxWidth: 200, whiteSpace: 'normal' }}>
+                                                        "{b.request_text}"
+                                                    </Typography>
+                                                )}
+                                            </TableCell>
+                                            <TableCell>
+                                                {b.room_details?.hostel_name}
+                                                <Typography variant="caption" display="block" color="text.secondary">
+                                                    (№{b.room_details?.number}) {b.start_date} — {b.last_date}
+                                                </Typography>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Chip label={b.approved === true ? "Схвалено" : b.approved === false ? "Відхилено" : "Очікує"}
+                                                      color={b.approved === true ? "success" : b.approved === false ? "error" : "warning"} />
+                                            </TableCell>
+                                            <TableCell align="center">
+                                                {b.approved === null && (
+                                                    <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                                                        <Button size="small" variant="contained" color="success" onClick={() => handleStatusChange(b.id, true)}>✓</Button>
+                                                        <Button size="small" variant="outlined" color="error" onClick={() => handleStatusChange(b.id, false)}>✗</Button>
+                                                    </Box>
+                                                )}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    <TableRow>
+                                        <TableCell colSpan={5} align="center" sx={{ py: 3 }}>
+                                            <Typography color="text.secondary">Заявок за цими критеріями не знайдено.</Typography>
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+                </Box>
             )}
 
             {/* ВКЛАДКА 1: МОЇ ГОТЕЛІ */}

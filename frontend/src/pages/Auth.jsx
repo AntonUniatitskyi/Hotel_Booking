@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { Box, TextField, Button, Typography, Container, Paper } from '@mui/material';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { InputAdornment, IconButton } from '@mui/material';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
 
 export default function Auth() {
     const [isLogin, setIsLogin] = useState(true);
@@ -15,6 +18,7 @@ export default function Auth() {
     });
 
     const navigate = useNavigate();
+    const [showPassword, setShowPassword] = useState(false);
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -104,14 +108,26 @@ export default function Auth() {
                     )}
 
                     <TextField
-                        margin="normal"
-                        required
                         fullWidth
                         label="Пароль"
                         name="password"
-                        type="password"
+                        // 1. Динамічний тип
+                        type={showPassword ? 'text' : 'password'}
                         value={formData.password}
                         onChange={handleChange}
+                        // 2. Додаємо іконку в кінець інпута
+                        InputProps={{
+                            endAdornment: (
+                                <InputAdornment position="end">
+                                    <IconButton
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        edge="end"
+                                    >
+                                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                                    </IconButton>
+                                </InputAdornment>
+                            ),
+                        }}
                     />
 
                     <Button type="submit" fullWidth variant="contained" color="primary" sx={{ mt: 3, mb: 2, py: 1.5 }}>

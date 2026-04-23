@@ -4,11 +4,11 @@ import { Snackbar, Alert } from '@mui/material';
 export default function LiveNotifications() {
     const [open, setOpen] = useState(false);
     const [message, setMessage] = useState('');
-    const [severity, setSeverity] = useState('info'); // Колір за замовчуванням (синій)
+    const [severity, setSeverity] = useState('info');
 
     useEffect(() => {
         const token = localStorage.getItem('token');
-        if (!token) return; // Не підключаємось, якщо юзер не залогінений
+        if (!token) return;
 
         const ws = new WebSocket(`ws://localhost:8000/ws/notifications/?token=${token}`);
 
@@ -20,7 +20,6 @@ export default function LiveNotifications() {
 
             setMessage(`${data.title}: ${data.message}`);
 
-            // Визначаємо колір плашки в залежності від тексту або типу
             if (data.message.toLowerCase().includes('відхилено')) {
                 setSeverity('error');
             } else if (data.message.toLowerCase().includes('схвалено')) {
