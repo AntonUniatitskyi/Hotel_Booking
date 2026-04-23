@@ -3,33 +3,36 @@ import {
     Container, Typography, Paper, Table, TableBody, TableCell,
     TableContainer, TableHead, TableRow, Chip, Button, Box, CircularProgress,
     Tabs, Tab, TextField, Switch, FormControlLabel, Divider, IconButton,
-    Select, MenuItem, InputLabel, FormControl,
-    Dialog, DialogTitle, DialogContent, DialogActions // НОВІ ІМПОРТИ
+    Select, MenuItem, InputLabel, FormControl, Grid,
+    Dialog, DialogTitle, DialogContent, DialogActions
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
-import EditIcon from '@mui/icons-material/Edit'; // ІКОНКА РЕДАГУВАННЯ
+import EditIcon from '@mui/icons-material/Edit';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import api from '../api';
 
 export default function AdminDashboard() {
     const [currentTab, setCurrentTab] = useState(0);
-
     const [bookings, setBookings] = useState([]);
     const [myHostels, setMyHostels] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
+    // Стейт для форм
     const [hostelForm, setHostelForm] = useState({
         name: '', about: '', city: '', address: '', is_active: true, main_image: null
     });
-
     const [roomForm, setRoomForm] = useState({
         number: '', price: '', bed: '', hostel: '', preview: null
     });
 
-    const [isSubmitting, setIsSubmitting] = useState(false);
-
-    // === СТАН ДЛЯ МОДАЛЬНОГО ВІКНА РЕДАГУВАННЯ ===
+    // Модальне вікно редагування
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editingHotel, setEditingHotel] = useState(null);
+
+    // НОВІ СТЕЙТИ: Галерея та завантаження
+    const [uploadingImage, setUploadingImage] = useState(false);
+    const [pendingGalleryFiles, setPendingGalleryFiles] = useState([]);
 
     // ==========================================
     // ЗАВАНТАЖЕННЯ ДАНИХ
@@ -37,10 +40,11 @@ export default function AdminDashboard() {
     const loadAllData = async () => {
         setLoading(true);
         try {
-            const bookingsRes = await api.get('bookings/');
+            const [bookingsRes, hostelsRes] = await Promise.all([
+                api.get('bookings/'),
+                api.get('hostels/')
+            ]);
             setBookings(Array.isArray(bookingsRes.data) ? bookingsRes.data : bookingsRes.data.results || []);
-
-            const hostelsRes = await api.get('hostels/');
             setMyHostels(Array.isArray(hostelsRes.data) ? hostelsRes.data : hostelsRes.data.results || []);
         } catch (error) {
             console.error("Помилка завантаження даних:", error);
@@ -51,7 +55,6 @@ export default function AdminDashboard() {
 
     useEffect(() => { loadAllData(); }, []);
 
-    // ... (Логіка заявок handleStatusChange залишається без змін) ...
     const handleStatusChange = async (bookingId, isApproved) => {
         try {
             await api.patch(`bookings/${bookingId}/`, { approved: isApproved });
@@ -63,44 +66,100 @@ export default function AdminDashboard() {
     };
 
     // ==========================================
-    // ЛОГІКА: КЕРУВАННЯ ГОТЕЛЯМИ (ВИДАЛЕННЯ ТА РЕДАГУВАННЯ)
+    // ЛОГІКА: КЕРУВАННЯ ГАЛЕРЕЄЮ (MULTIPLE + PREVIEW)
     // ==========================================
-    const handleDeleteHostel = async (id) => {
-        if (!window.confirm("Ви впевнені, що хочете видалити цей готель? Це видалить і всі кімнати в ньому!")) return;
+
+    // Обираємо файли локально для прев'ю
+    const handleSelectGalleryFiles = (e) => {
+        const files = Array.from(e.target.files);
+        setPendingGalleryFiles(prev => [...prev, ...files]);
+        e.target.value = null;
+    };
+
+    // Видалити файл зі списку прев'ю (до завантаження)
+    const handleRemovePendingFile = (indexToRemove) => {
+        setPendingGalleryFiles(prev => prev.filter((_, index) => index !== indexToRemove));
+    };
+
+    // Відправляємо всі обрані фото одним махом
+    const handleConfirmUploadGallery = async () => {
+        if (pendingGalleryFiles.length === 0) return;
+        setUploadingImage(true);
+
+        const formData = new FormData();
+        pendingGalleryFiles.forEach(file => {
+            formData.append('images', file); // Ключ 'images' як у коді бекенду
+        });
+
         try {
-            await api.delete(`hostels/${id}/`);
-            setMyHostels(prev => prev.filter(h => h.id !== id));
-            alert("Готель видалено успішно");
+            const response = await api.post(`hostels/${editingHotel.id}/upload_image/`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+
+            // Якщо бек повертає масив створених фото, оновимо стейт
+            const updatedGallery = [...(editingHotel.gallery_images || []), ...response.data];
+            const updatedHotel = { ...editingHotel, gallery_images: updatedGallery };
+
+            setEditingHotel(updatedHotel);
+            setMyHostels(prev => prev.map(h => h.id === editingHotel.id ? updatedHotel : h));
+            setPendingGalleryFiles([]);
+            alert("Галерея оновлена! 🖼️");
         } catch (error) {
             console.error(error);
-            alert("Помилка при видаленні. Можливо, немає прав.");
+            alert("Помилка завантаження фото. Перевірте консоль.");
+        } finally {
+            setUploadingImage(false);
         }
     };
 
-    // Відкриваємо модалку і записуємо дані обраного готелю
+    const handleDeleteGalleryImage = async (imageId) => {
+        if (!window.confirm("Видалити це фото назавжди?")) return;
+        try {
+            await api.delete(`hostels/${editingHotel.id}/delete_image/${imageId}/`);
+            const updatedGallery = editingHotel.gallery_images.filter(img => img.id !== imageId);
+            const updatedHotel = { ...editingHotel, gallery_images: updatedGallery };
+
+            setEditingHotel(updatedHotel);
+            setMyHostels(prev => prev.map(h => h.id === editingHotel.id ? updatedHotel : h));
+        } catch (error) {
+            console.error(error);
+            alert("Помилка видалення фото.");
+        }
+    };
+
+    // ==========================================
+    // ЛОГІКА: РЕДАГУВАННЯ ГОТЕЛЮ
+    // ==========================================
+    const handleDeleteHostel = async (id) => {
+        if (!window.confirm("Видалити цей готель та всі його кімнати?")) return;
+        try {
+            await api.delete(`hostels/${id}/`);
+            setMyHostels(prev => prev.filter(h => h.id !== id));
+        } catch (error) {
+            console.error(error);
+            alert("Помилка при видаленні.");
+        }
+    };
+
     const handleOpenEditModal = (hotel) => {
-        setEditingHotel({ ...hotel, main_image: null }); // Скидаємо файл, бо з беку прийшов URL
+        setEditingHotel({ ...hotel, main_image: null });
+        setPendingGalleryFiles([]);
         setIsEditModalOpen(true);
     };
 
-    // Зміна полів у модалці
     const handleEditChange = (e) => {
         const { name, value, type, checked } = e.target;
         setEditingHotel(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
     };
 
-    // Відправка оновлених даних (PATCH запит)
     const handleSaveEdit = async () => {
         setIsSubmitting(true);
         const formData = new FormData();
-
         formData.append('name', editingHotel.name);
         formData.append('about', editingHotel.about);
         formData.append('address', editingHotel.address);
         formData.append('is_active', editingHotel.is_active);
         if (editingHotel.city) formData.append('city', editingHotel.city);
-
-        // Додаємо картинку ТІЛЬКИ якщо адмін вибрав НОВИЙ файл
         if (editingHotel.main_image instanceof File) {
             formData.append('main_image', editingHotel.main_image);
         }
@@ -109,20 +168,18 @@ export default function AdminDashboard() {
             const response = await api.patch(`hostels/${editingHotel.id}/`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
-
-            // Оновлюємо список готелів локально
             setMyHostels(prev => prev.map(h => h.id === editingHotel.id ? response.data : h));
             setIsEditModalOpen(false);
-            alert("Готель успішно оновлено! ✏️");
+            alert("Дані готелю оновлено!");
         } catch (error) {
             console.error(error);
-            alert("Помилка оновлення готелю.");
+            alert("Помилка оновлення.");
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    // ... (Логіка створення готелю і кімнати handleCreateHostel / handleCreateRoom залишається без змін) ...
+    // Створення готелю та кімнати
     const handleHostelChange = (e) => {
         const { name, value, type, checked } = e.target;
         setHostelForm(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
@@ -135,7 +192,6 @@ export default function AdminDashboard() {
         Object.keys(hostelForm).forEach(key => {
             if (hostelForm[key] !== null) formData.append(key, hostelForm[key]);
         });
-
         try {
             await api.post('hostels/', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
             alert("Готель створено!");
@@ -144,34 +200,26 @@ export default function AdminDashboard() {
             setCurrentTab(1);
         } catch (error) {
             console.error(error);
-            alert("Помилка створення готелю");
+            alert("Помилка створення.");
         } finally {
             setIsSubmitting(false);
         }
-    };
-
-    const handleRoomChange = (e) => {
-        const { name, value } = e.target;
-        setRoomForm(prev => ({ ...prev, [name]: value }));
     };
 
     const handleCreateRoom = async (e) => {
         e.preventDefault();
         setIsSubmitting(true);
         const formData = new FormData();
-        formData.append('number', roomForm.number);
-        formData.append('price', roomForm.price);
-        formData.append('bed', roomForm.bed);
-        formData.append('hostel', roomForm.hostel);
-        if (roomForm.preview) formData.append('preview', roomForm.preview);
-
+        Object.keys(roomForm).forEach(key => {
+            if (roomForm[key]) formData.append(key, roomForm[key]);
+        });
         try {
             await api.post('rooms/', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-            alert("Кімнату успішно додано! 🛏️");
+            alert("Кімнату додано!");
             setRoomForm({ number: '', price: '', bed: '', hostel: '', preview: null });
         } catch (error) {
             console.error(error);
-            alert("Помилка створення кімнати. Перевірте дані.");
+            alert("Помилка створення кімнати.");
         } finally {
             setIsSubmitting(false);
         }
@@ -195,7 +243,6 @@ export default function AdminDashboard() {
             {/* ВКЛАДКА 0: ЗАЯВКИ */}
             {currentTab === 0 && (
                 <TableContainer component={Paper}>
-                    {/* ... (Твій існуючий код таблиці заявок) ... */}
                     <Table>
                         <TableHead sx={{ backgroundColor: '#f5f5f5' }}>
                             <TableRow>
@@ -254,11 +301,9 @@ export default function AdminDashboard() {
                                     <TableCell>{h.city}, {h.address}</TableCell>
                                     <TableCell><Chip label={h.is_active ? "Активний" : "Прихований"} color={h.is_active ? "success" : "default"} variant="outlined" /></TableCell>
                                     <TableCell align="center">
-                                        {/* КНОПКА РЕДАГУВАННЯ */}
                                         <IconButton color="primary" onClick={() => handleOpenEditModal(h)}>
                                             <EditIcon />
                                         </IconButton>
-                                        {/* КНОПКА ВИДАЛЕННЯ */}
                                         <IconButton color="error" onClick={() => handleDeleteHostel(h.id)}>
                                             <DeleteIcon />
                                         </IconButton>
@@ -279,8 +324,23 @@ export default function AdminDashboard() {
                         <TextField label="Місто" name="city" value={hostelForm.city} onChange={handleHostelChange} />
                         <TextField required label="Адреса" name="address" value={hostelForm.address} onChange={handleHostelChange} />
                         <FormControlLabel control={<Switch checked={hostelForm.is_active} name="is_active" onChange={handleHostelChange} />} label="Активний" />
-                        <input type="file" onChange={(e) => setHostelForm(prev => ({ ...prev, main_image: e.target.files[0] }))} />
-                        <Button type="submit" variant="contained" disabled={isSubmitting}>Створити</Button>
+
+                        {/* ПРЕВ'Ю ГОЛОВНОГО ФОТО */}
+                        <Box sx={{ mt: 1, textAlign: 'center' }}>
+                            {hostelForm.main_image && (
+                                <img
+                                    src={URL.createObjectURL(hostelForm.main_image)}
+                                    alt="Preview"
+                                    style={{ width: '100%', height: 150, objectFit: 'cover', borderRadius: 8, marginBottom: 10 }}
+                                />
+                            )}
+                            <Button variant="outlined" component="label" fullWidth startIcon={<CloudUploadIcon />}>
+                                {hostelForm.main_image ? hostelForm.main_image.name : "Завантажити головне фото"}
+                                <input type="file" hidden accept="image/*" onChange={(e) => setHostelForm(prev => ({ ...prev, main_image: e.target.files[0] }))} />
+                            </Button>
+                        </Box>
+
+                        <Button type="submit" variant="contained" disabled={isSubmitting} size="large">Створити готель</Button>
                     </Box>
                 </Paper>
             )}
@@ -288,29 +348,43 @@ export default function AdminDashboard() {
             {/* ВКЛАДКА 3: ДОДАТИ КІМНАТУ */}
             {currentTab === 3 && (
                 <Paper sx={{ p: 4, maxWidth: 600, mx: 'auto' }}>
-                    {/* ... (Твій існуючий код форми кімнати) ... */}
                     {myHostels.length === 0 ? (
                         <Typography color="error" align="center">Спочатку створіть хоча б один готель!</Typography>
                     ) : (
                         <Box component="form" onSubmit={handleCreateRoom} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                             <FormControl fullWidth required>
                                 <InputLabel id="hostel-select-label">Оберіть готель</InputLabel>
-                                <Select labelId="hostel-select-label" name="hostel" value={roomForm.hostel} label="Оберіть готель" onChange={handleRoomChange}>
+                                <Select labelId="hostel-select-label" name="hostel" value={roomForm.hostel} label="Оберіть готель" onChange={(e) => setRoomForm(prev => ({ ...prev, hostel: e.target.value }))}>
                                     {myHostels.map(hostel => <MenuItem key={hostel.id} value={hostel.id}>{hostel.name}</MenuItem>)}
                                 </Select>
                             </FormControl>
-                            <TextField required label="Номер кімнати" name="number" type="number" value={roomForm.number} onChange={handleRoomChange} />
-                            <TextField required label="Ціна (грн)" name="price" type="number" value={roomForm.price} onChange={handleRoomChange} />
-                            <TextField required label="Місць" name="bed" type="number" value={roomForm.bed} onChange={handleRoomChange} />
-                            <input type="file" accept="image/*" onChange={(e) => setRoomForm(prev => ({ ...prev, preview: e.target.files[0] }))} />
-                            <Button type="submit" variant="contained" color="success" disabled={isSubmitting}>Зберегти кімнату</Button>
+                            <TextField required label="Номер кімнати" name="number" type="number" value={roomForm.number} onChange={(e) => setRoomForm(prev => ({ ...prev, number: e.target.value }))} />
+                            <TextField required label="Ціна (грн)" name="price" type="number" value={roomForm.price} onChange={(e) => setRoomForm(prev => ({ ...prev, price: e.target.value }))} />
+                            <TextField required label="Місць" name="bed" type="number" value={roomForm.bed} onChange={(e) => setRoomForm(prev => ({ ...prev, bed: e.target.value }))} />
+
+                            {/* ПРЕВ'Ю КІМНАТИ */}
+                            <Box sx={{ mt: 1, textAlign: 'center' }}>
+                                {roomForm.preview && (
+                                    <img
+                                        src={URL.createObjectURL(roomForm.preview)}
+                                        alt="Room Preview"
+                                        style={{ width: '100%', height: 150, objectFit: 'cover', borderRadius: 8, marginBottom: 10 }}
+                                    />
+                                )}
+                                <Button variant="outlined" component="label" fullWidth color="success">
+                                    {roomForm.preview ? roomForm.preview.name : "Завантажити фото кімнати"}
+                                    <input type="file" hidden accept="image/*" onChange={(e) => setRoomForm(prev => ({ ...prev, preview: e.target.files[0] }))} />
+                                </Button>
+                            </Box>
+
+                            <Button type="submit" variant="contained" color="success" disabled={isSubmitting} size="large">Зберегти кімнату</Button>
                         </Box>
                     )}
                 </Paper>
             )}
 
             {/* ========================================================= */}
-            {/* МОДАЛЬНЕ ВІКНО ДЛЯ РЕДАГУВАННЯ ГОТЕЛЮ */}
+            {/* МОДАЛЬНЕ ВІКНО ДЛЯ РЕДАГУВАННЯ */}
             {/* ========================================================= */}
             <Dialog open={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} maxWidth="sm" fullWidth>
                 <DialogTitle fontWeight="bold">Редагувати готель</DialogTitle>
@@ -326,12 +400,82 @@ export default function AdminDashboard() {
                                 label="Активний (видимий для всіх)"
                             />
 
+                            {/* ГАЛЕРЕЯ В МОДАЛЦІ */}
+                            <Box sx={{ mt: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 2, bgcolor: '#fafafa' }}>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                                    <Typography variant="h6" fontWeight="bold">Галерея</Typography>
+                                    <Button variant="contained" component="label" size="small" startIcon={<CloudUploadIcon />}>
+                                        Обрати фото
+                                        <input type="file" hidden accept="image/*" multiple onChange={handleSelectGalleryFiles} />
+                                    </Button>
+                                </Box>
+
+                                {/* ПРЕВ'Ю НОВИХ ФОТО (PENDING) */}
+                                {pendingGalleryFiles.length > 0 && (
+                                    <Box sx={{ mb: 2, p: 1.5, border: '2px dashed #1976d2', borderRadius: 2, bgcolor: '#e3f2fd' }}>
+                                        <Typography variant="caption" color="primary" fontWeight="bold">
+                                            До завантаження ({pendingGalleryFiles.length}):
+                                        </Typography>
+                                        <Grid container spacing={1} sx={{ mt: 1 }}>
+                                            {pendingGalleryFiles.map((file, idx) => (
+                                                <Grid item xs={3} key={idx}>
+                                                    <Box sx={{ position: 'relative', paddingTop: '100%' }}>
+                                                        <img
+                                                            src={URL.createObjectURL(file)}
+                                                            alt="new"
+                                                            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', borderRadius: 4, opacity: 0.7 }}
+                                                        />
+                                                        <IconButton size="small" color="error" sx={{ position: 'absolute', top: -5, right: -5, p: 0.2, bgcolor: 'white' }} onClick={() => handleRemovePendingFile(idx)}>
+                                                            <DeleteIcon fontSize="inherit" />
+                                                        </IconButton>
+                                                    </Box>
+                                                </Grid>
+                                            ))}
+                                        </Grid>
+                                        <Button
+                                            variant="contained" size="small" fullWidth sx={{ mt: 1.5 }}
+                                            onClick={handleConfirmUploadGallery} disabled={uploadingImage}
+                                        >
+                                            {uploadingImage ? <CircularProgress size={20} color="inherit" /> : "🚀 Завантажити обрані"}
+                                        </Button>
+                                    </Box>
+                                )}
+
+                                <Divider sx={{ mb: 2 }} />
+
+                                {/* ІСНУЮЧІ ФОТО */}
+                                <Grid container spacing={1}>
+                                    {editingHotel.gallery_images?.map((img) => (
+                                        <Grid item xs={3} key={img.id}>
+                                            <Box sx={{ position: 'relative', paddingTop: '100%' }}>
+                                                <img
+                                                    src={img.image}
+                                                    style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', borderRadius: 4 }}
+                                                />
+                                                <IconButton
+                                                    size="small" color="error"
+                                                    sx={{ position: 'absolute', top: -5, right: -5, p: 0.2, bgcolor: 'white' }}
+                                                    onClick={() => handleDeleteGalleryImage(img.id)}
+                                                >
+                                                    <DeleteIcon fontSize="inherit" />
+                                                </IconButton>
+                                            </Box>
+                                        </Grid>
+                                    ))}
+                                </Grid>
+                            </Box>
+
+                            {/* ПРЕВ'Ю ГОЛОВНОГО ФОТО ПРИ РЕДАГУВАННІ */}
                             <Box sx={{ border: '1px dashed #ccc', p: 2, borderRadius: 2, textAlign: 'center' }}>
-                                <Typography variant="body2" color="text.secondary" gutterBottom>
-                                    Змінити головне фото (залиште пустим, щоб зберегти старе)
-                                </Typography>
-                                <Button variant="outlined" component="label">
-                                    {editingHotel.main_image instanceof File ? editingHotel.main_image.name : "Вибрати новий файл"}
+                                <Box sx={{ mb: 1.5 }}>
+                                    <img
+                                        src={editingHotel.main_image instanceof File ? URL.createObjectURL(editingHotel.main_image) : editingHotel.main_image}
+                                        alt="Main"
+                                        style={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 4 }}
+                                    />
+                                </Box>
+                                <Button variant="outlined" component="label" size="small">
+                                    {editingHotel.main_image instanceof File ? "Змінити обране" : "Змінити головне фото"}
                                     <input type="file" hidden accept="image/*" onChange={(e) => setEditingHotel(prev => ({ ...prev, main_image: e.target.files[0] }))} />
                                 </Button>
                             </Box>
@@ -341,7 +485,7 @@ export default function AdminDashboard() {
                 <DialogActions sx={{ p: 2 }}>
                     <Button onClick={() => setIsEditModalOpen(false)} color="inherit">Скасувати</Button>
                     <Button onClick={handleSaveEdit} variant="contained" color="primary" disabled={isSubmitting}>
-                        {isSubmitting ? <CircularProgress size={24} /> : "Зберегти зміни"}
+                        Зберегти зміни
                     </Button>
                 </DialogActions>
             </Dialog>

@@ -53,6 +53,9 @@ export default function UserProfile() {
         return <Chip label="Очікує" color="warning" size="small" />;
     };
 
+    // ==========================================
+    // ЛОГІКА: ВИДАЛЕННЯ АКАУНТА (ОНОВЛЕНО)
+    // ==========================================
     const handleDeleteAccount = async () => {
         const confirmDelete = window.confirm(
             "⚠️ Ви впевнені, що хочете назавжди видалити свій акаунт?\nУсі ваші дані та бронювання будуть втрачені. Цю дію неможливо скасувати!"
@@ -60,20 +63,41 @@ export default function UserProfile() {
 
         if (!confirmDelete) return;
 
-        try {
-            await api.delete('clients/me/');
+        // Запитуємо пароль у користувача (для MVP найпростіший варіант - браузерний prompt)
+        const password = window.prompt("Для підтвердження видалення введіть ваш пароль:");
 
+        // Якщо користувач натиснув "Скасувати" або ввів пустий рядок
+        if (!password) {
+            alert("Видалення скасовано. Пароль є обов'язковим для цієї дії.");
+            return;
+        }
+
+        try {
+            // В Axios для DELETE-запиту тіло передається всередині конфігураційного об'єкта під ключем "data"
+            await api.delete('clients/delete_me/', {
+                data: { password: password }
+            });
+
+            // Чистимо локальні дані (робимо повний логаут)
             localStorage.removeItem('token');
             localStorage.removeItem('refresh');
             localStorage.removeItem('role');
             localStorage.removeItem('user');
 
             alert("Ваш акаунт було успішно видалено. Шкода, що ви нас покидаєте! 😢");
-            window.location.href = '/login';
+            window.location.href = '/login'; // Викидаємо на сторінку входу
 
         } catch (error) {
             console.error("Помилка видалення акаунта:", error);
-            alert("Не вдалося видалити акаунт. Можливо, бекенд ще не підтримує цю функцію.");
+
+            // Обробляємо специфічні помилки від бекенду
+            if (error.response && error.response.status === 403) {
+                alert("❌ Невірний пароль! Або ви намагаєтесь видалити акаунт адміністратора.");
+            } else if (error.response && error.response.status === 400) {
+                alert("❌ Пароль не передано.");
+            } else {
+                alert("Не вдалося видалити акаунт. Перевірте з'єднання або консоль.");
+            }
         }
     };
 
@@ -142,6 +166,8 @@ export default function UserProfile() {
                             </Grid>
                         )}
                     </Grid>
+
+
 
                     {/* НЕБЕЗПЕЧНА ЗОНА */}
                     <Box sx={{ mt: 5, pt: 3, borderTop: '1px solid', borderColor: 'error.light' }}>
