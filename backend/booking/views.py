@@ -54,6 +54,7 @@ class ReviewsViewSet(viewsets.ModelViewSet):
 class RoomViewSet(viewsets.ModelViewSet):
     serializer_class = RoomSerializer
     filterset_fields = ['hostel']
+    filter_backends = [DjangoFilterBackend]
 
     def get_queryset(self):
         user = self.request.user
