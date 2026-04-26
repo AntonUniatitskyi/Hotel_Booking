@@ -98,7 +98,7 @@ class InvoicePDFGenerator:
         p.setFillColor(colors.black)
         p.setFont(FONT_BOLD, 14)
         p.drawString(60, 655, "Загальна вартість:")
-        p.drawRightString(540, 655, f"${b.price}")
+        p.drawRightString(540, 655, f"₴{b.price}")
 
     def _draw_qr(self, p):
         data = f"https://github.com/AntonUniatitskyi/Hotel_Booking"
