@@ -9,6 +9,7 @@ import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import PersonIcon from '@mui/icons-material/Person';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import CancelIcon from '@mui/icons-material/Cancel';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'; // Іконка деталей
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import api from '../api';
@@ -21,32 +22,19 @@ export default function UserProfile() {
     const [bookings, setBookings] = useState([]);
     const [messages, setMessages] = useState([]);
 
-    // Стейти для модального вікна видалення акаунта
+    // Стейти для видалення акаунта
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [deletePassword, setDeletePassword] = useState('');
     const [showDeletePassword, setShowDeletePassword] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
 
-    // ==========================================
-    // ЛОГІКА: СКАСУВАННЯ БРОНЮВАННЯ
-    // ==========================================
-    const handleCancelBooking = async (bookingId) => {
-        const confirmCancel = window.confirm("Ви впевнені, що хочете скасувати це бронювання?");
-        if (!confirmCancel) return;
+    // НОВІ СТЕЙТИ: Деталі бронювання
+    const [selectedBooking, setSelectedBooking] = useState(null);
+    const [isBookingDetailsModalOpen, setIsBookingDetailsModalOpen] = useState(false);
 
-        try {
-            await api.delete(`bookings/${bookingId}/`);
-            setBookings(prevBookings => prevBookings.filter(b => b.id !== bookingId));
-            alert("Бронювання успішно скасовано!");
-        } catch (error) {
-            console.error("Помилка скасування:", error);
-            if (error.response && error.response.status === 400) {
-                alert(`❌ ${error.response.data.error || "Не вдалося скасувати бронь."}`);
-            } else {
-                alert("Сталася помилка при скасуванні. Перевірте консоль.");
-            }
-        }
-    };
+    // НОВІ СТЕЙТИ: Підтвердження скасування бронювання
+    const [bookingToCancel, setBookingToCancel] = useState(null);
+    const [isCancelConfirmModalOpen, setIsCancelConfirmModalOpen] = useState(false);
 
     useEffect(() => {
         const fetchAllProfileData = async () => {
@@ -78,7 +66,41 @@ export default function UserProfile() {
     };
 
     // ==========================================
-    // ЛОГІКА: ВИДАЛЕННЯ АКАУНТА (Через Dialog)
+    // ЛОГІКА: ВІДКРИТТЯ ДЕТАЛЕЙ ТА СКАСУВАННЯ
+    // ==========================================
+    const handleOpenBookingDetails = (booking) => {
+        setSelectedBooking(booking);
+        setIsBookingDetailsModalOpen(true);
+    };
+
+    const handleInitiateCancel = (bookingId) => {
+        setBookingToCancel(bookingId);
+        setIsCancelConfirmModalOpen(true);
+    };
+
+    const confirmCancelBooking = async () => {
+        if (!bookingToCancel) return;
+
+        try {
+            await api.delete(`bookings/${bookingToCancel}/`);
+            setBookings(prevBookings => prevBookings.filter(b => b.id !== bookingToCancel));
+            alert("Бронювання успішно скасовано!");
+            setIsBookingDetailsModalOpen(false); // Закриваємо деталі, якщо скасовували звідти
+        } catch (error) {
+            console.error("Помилка скасування:", error);
+            if (error.response && error.response.status === 400) {
+                alert(`❌ ${error.response.data.error || "Не вдалося скасувати бронь."}`);
+            } else {
+                alert("Сталася помилка при скасуванні. Перевірте консоль.");
+            }
+        } finally {
+            setIsCancelConfirmModalOpen(false);
+            setBookingToCancel(null);
+        }
+    };
+
+    // ==========================================
+    // ЛОГІКА: ВИДАЛЕННЯ АКАУНТА
     // ==========================================
     const confirmDeleteAccount = async () => {
         if (!deletePassword) {
@@ -99,7 +121,6 @@ export default function UserProfile() {
 
             alert("Ваш акаунт було успішно видалено. Шкода, що ви нас покидаєте! 😢");
             window.location.href = '/login';
-
         } catch (error) {
             console.error("Помилка видалення акаунта:", error);
             if (error.response && error.response.status === 403) {
@@ -112,7 +133,23 @@ export default function UserProfile() {
         } finally {
             setIsDeleting(false);
             setDeletePassword('');
-            setIsDeleteDialogOpen(false); // Закриваємо модалку після помилки або успіху
+            setIsDeleteDialogOpen(false);
+        }
+    };
+
+    const downloadPDF = async (bookingId) => {
+        try {
+            const response = await api.get(`bookings/${bookingId}/download_invoice/`, { responseType: 'blob' });
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `invoice_booking_${bookingId}.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode.removeChild(link);
+        } catch (error) {
+            console.error("Помилка завантаження PDF:", error);
+            alert("Не вдалося завантажити квитанцію.");
         }
     };
 
@@ -168,17 +205,12 @@ export default function UserProfile() {
                         )}
                     </Grid>
 
-                    {/* НЕБЕЗПЕЧНА ЗОНА */}
                     <Box sx={{ mt: 5, pt: 3, borderTop: '1px solid', borderColor: 'error.light' }}>
                         <Typography variant="subtitle1" color="error" fontWeight="bold" gutterBottom>Небезпечна зона</Typography>
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                             Видалення облікового запису призведе до безповоротної втрати всіх ваших даних, історії сповіщень та поточних бронювань.
                         </Typography>
-                        <Button
-                            variant="outlined"
-                            color="error"
-                            onClick={() => setIsDeleteDialogOpen(true)} // Відкриваємо модалку замість window.prompt
-                        >
+                        <Button variant="outlined" color="error" onClick={() => setIsDeleteDialogOpen(true)}>
                             Видалити акаунт назавжди
                         </Button>
                     </Box>
@@ -196,41 +228,46 @@ export default function UserProfile() {
                                 <Grid item xs={12} key={booking.id}>
                                     <Card variant="outlined" sx={{ borderRadius: 3, boxShadow: 1 }}>
                                         <CardContent sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 3, flexWrap: 'wrap', gap: 2 }}>
+
+                                            {/* Спрощена ліва частина */}
                                             <Box sx={{ pr: 3, flexGrow: 1 }}>
-                                                <Typography variant="h6" fontWeight="bold">{booking.room_details?.hostel_name}</Typography>
-                                                <Typography variant="body2" color="text.secondary" gutterBottom>Кімната №{booking.room_details?.number}</Typography>
-                                                <Typography variant="body1"><Box component="span" fontWeight="bold">Дати:</Box> {booking.start_date} — {booking.last_date}</Typography>
+                                                <Typography variant="h6" fontWeight="bold">
+                                                    {booking.room_details?.hostel_name}
+                                                </Typography>
+                                                <Typography variant="body1" color="text.secondary">
+                                                    {booking.start_date} — {booking.last_date}
+                                                </Typography>
                                             </Box>
+
+                                            {/* Права частина: Статус і кнопки */}
                                             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1.5, minWidth: '180px' }}>
-                                                <Typography variant="h5" color="primary.main" fontWeight="bold">{booking.price} грн</Typography>
                                                 {renderStatus(booking.approved)}
+
                                                 <Box sx={{ display: 'flex', gap: 1, mt: 1, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                                                    {booking.approved === true && (
-                                                        <Button
-                                                            size="small" variant="outlined" startIcon={<ReceiptLongIcon />} sx={{ borderColor: '#ccc', color: '#555' }}
-                                                            onClick={async () => {
-                                                                try {
-                                                                    const response = await api.get(`bookings/${booking.id}/download_invoice/`, { responseType: 'blob' });
-                                                                    const url = window.URL.createObjectURL(new Blob([response.data]));
-                                                                    const link = document.createElement('a');
-                                                                    link.href = url;
-                                                                    link.setAttribute('download', `invoice_booking_${booking.id}.pdf`);
-                                                                    document.body.appendChild(link);
-                                                                    link.click();
-                                                                    link.parentNode.removeChild(link);
-                                                                } catch (error) {
-                                                                    alert("Не вдалося завантажити квитанцію.");
-                                                                }
-                                                            }}
-                                                        >
-                                                            КВИТАНЦІЯ
-                                                        </Button>
-                                                    )}
-                                                    <Button size="small" variant="outlined" color="error" startIcon={<CancelIcon />} onClick={() => handleCancelBooking(booking.id)}>
-                                                        СКАСУВАТИ
+                                                    {/* Кнопка Деталі */}
+                                                    <Button
+                                                        size="small"
+                                                        variant="outlined"
+                                                        color="primary"
+                                                        startIcon={<InfoOutlinedIcon />}
+                                                        onClick={() => handleOpenBookingDetails(booking)}
+                                                    >
+                                                        Деталі
+                                                    </Button>
+
+                                                    {/* Кнопка Скасування */}
+                                                    <Button
+                                                        size="small"
+                                                        variant="outlined"
+                                                        color="error"
+                                                        startIcon={<CancelIcon />}
+                                                        onClick={() => handleInitiateCancel(booking.id)}
+                                                    >
+                                                        Скасувати
                                                     </Button>
                                                 </Box>
                                             </Box>
+
                                         </CardContent>
                                     </Card>
                                 </Grid>
@@ -267,33 +304,96 @@ export default function UserProfile() {
             )}
 
             {/* ======================================================= */}
-            {/* МОДАЛЬНЕ ВІКНО ДЛЯ ПІДТВЕРДЖЕННЯ ВИДАЛЕННЯ АКАУНТА */}
+            {/* МОДАЛКА 1: ДЕТАЛІ БРОНЮВАННЯ */}
+            {/* ======================================================= */}
+            <Dialog open={isBookingDetailsModalOpen} onClose={() => setIsBookingDetailsModalOpen(false)} maxWidth="sm" fullWidth>
+                <DialogTitle sx={{ fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    Деталі бронювання #{selectedBooking?.id}
+                    {renderStatus(selectedBooking?.approved)}
+                </DialogTitle>
+                <DialogContent dividers>
+                    {selectedBooking && (
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            <Box>
+                                <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', fontWeight: 'bold' }}>Готель</Typography>
+                                <Typography variant="h6">{selectedBooking.room_details?.hostel_name}</Typography>
+                            </Box>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <Box>
+                                    <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', fontWeight: 'bold' }}>Кімната</Typography>
+                                    <Typography variant="body1">№{selectedBooking.room_details?.number}</Typography>
+                                </Box>
+                                <Box sx={{ textAlign: 'right' }}>
+                                    <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', fontWeight: 'bold' }}>Ціна</Typography>
+                                    <Typography variant="body1" color="primary" fontWeight="bold">{selectedBooking.price} грн</Typography>
+                                </Box>
+                            </Box>
+                            <Box>
+                                <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', fontWeight: 'bold' }}>Дати перебування</Typography>
+                                <Typography variant="body1">{selectedBooking.start_date} — {selectedBooking.last_date}</Typography>
+                            </Box>
+                            {selectedBooking.request_text && (
+                                <Box sx={{ p: 2, bgcolor: '#f5f5f5', borderRadius: 2 }}>
+                                    <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', fontWeight: 'bold' }}>Ваші побажання</Typography>
+                                    <Typography variant="body2" sx={{ fontStyle: 'italic', mt: 0.5 }}>"{selectedBooking.request_text}"</Typography>
+                                </Box>
+                            )}
+                        </Box>
+                    )}
+                </DialogContent>
+                <DialogActions sx={{ p: 2, justifyContent: 'space-between' }}>
+                    <Box>
+                        {selectedBooking?.approved === true && (
+                            <Button
+                                variant="contained"
+                                color="primary"
+                                startIcon={<ReceiptLongIcon />}
+                                onClick={() => downloadPDF(selectedBooking.id)}
+                            >
+                                Квитанція
+                            </Button>
+                        )}
+                    </Box>
+                    <Button onClick={() => setIsBookingDetailsModalOpen(false)} color="inherit" variant="outlined">
+                        Закрити
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* ======================================================= */}
+            {/* МОДАЛКА 2: ПІДТВЕРДЖЕННЯ СКАСУВАННЯ */}
+            {/* ======================================================= */}
+            <Dialog open={isCancelConfirmModalOpen} onClose={() => setIsCancelConfirmModalOpen(false)}>
+                <DialogTitle sx={{ color: 'error.main', fontWeight: 'bold' }}>Підтвердження скасування</DialogTitle>
+                <DialogContent>
+                    <DialogContentText>
+                        Ви дійсно хочете скасувати це бронювання? Якщо до дати заїзду залишилося менше 24 годин, скасування може бути відхилено системою.
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions sx={{ p: 2 }}>
+                    <Button onClick={() => setIsCancelConfirmModalOpen(false)} color="inherit">Ні, залишити</Button>
+                    <Button onClick={confirmCancelBooking} color="error" variant="contained">Так, скасувати</Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* ======================================================= */}
+            {/* МОДАЛКА 3: ВИДАЛЕННЯ АКАУНТА (Залишається без змін) */}
             {/* ======================================================= */}
             <Dialog open={isDeleteDialogOpen} onClose={() => setIsDeleteDialogOpen(false)}>
                 <DialogTitle sx={{ color: 'error.main', fontWeight: 'bold' }}>⚠️ Видалення акаунта</DialogTitle>
                 <DialogContent>
                     <DialogContentText sx={{ mb: 3 }}>
-                        Усі ваші дані, історія бронювань та сповіщення будуть видалені назавжди. Цю дію <b>неможливо</b> скасувати.
-                        <br/><br/>
+                        Усі ваші дані, історія бронювань та сповіщення будуть видалені назавжди. Цю дію <b>неможливо</b> скасувати.<br/><br/>
                         Для підтвердження, будь ласка, введіть свій пароль:
                     </DialogContentText>
                     <TextField
-                        autoFocus
-                        fullWidth
-                        variant="outlined"
-                        label="Ваш пароль"
-                        // ТУТ МАГІЯ: змінюємо тип поля залежно від стейту showDeletePassword
+                        autoFocus fullWidth variant="outlined" label="Ваш пароль"
                         type={showDeletePassword ? 'text' : 'password'}
-                        value={deletePassword}
-                        onChange={(e) => setDeletePassword(e.target.value)}
+                        value={deletePassword} onChange={(e) => setDeletePassword(e.target.value)}
                         InputProps={{
                             endAdornment: (
                                 <InputAdornment position="end">
-                                    <IconButton
-                                        onClick={() => setShowDeletePassword(!showDeletePassword)}
-                                        edge="end"
-                                    >
-                                        {/* Показуємо перекреслене або звичайне око */}
+                                    <IconButton onClick={() => setShowDeletePassword(!showDeletePassword)} edge="end">
                                         {showDeletePassword ? <VisibilityOff /> : <Visibility />}
                                     </IconButton>
                                 </InputAdornment>
@@ -302,15 +402,8 @@ export default function UserProfile() {
                     />
                 </DialogContent>
                 <DialogActions sx={{ p: 2, pt: 0 }}>
-                    <Button onClick={() => setIsDeleteDialogOpen(false)} color="inherit">
-                        Скасувати
-                    </Button>
-                    <Button
-                        onClick={confirmDeleteAccount}
-                        color="error"
-                        variant="contained"
-                        disabled={!deletePassword || isDeleting}
-                    >
+                    <Button onClick={() => setIsDeleteDialogOpen(false)} color="inherit">Скасувати</Button>
+                    <Button onClick={confirmDeleteAccount} color="error" variant="contained" disabled={!deletePassword || isDeleting}>
                         {isDeleting ? <CircularProgress size={24} color="inherit" /> : "Видалити назавжди"}
                     </Button>
                 </DialogActions>
