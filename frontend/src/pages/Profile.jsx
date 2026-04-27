@@ -9,9 +9,10 @@ import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import PersonIcon from '@mui/icons-material/Person';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import CancelIcon from '@mui/icons-material/Cancel';
-import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'; // Іконка деталей
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import EditIcon from '@mui/icons-material/Edit'; // НОВА ІКОНКА ДЛЯ РЕДАГУВАННЯ
 import api from '../api';
 
 export default function UserProfile() {
@@ -28,13 +29,22 @@ export default function UserProfile() {
     const [showDeletePassword, setShowDeletePassword] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
 
-    // НОВІ СТЕЙТИ: Деталі бронювання
+    // Стейти для деталей бронювання
     const [selectedBooking, setSelectedBooking] = useState(null);
     const [isBookingDetailsModalOpen, setIsBookingDetailsModalOpen] = useState(false);
 
-    // НОВІ СТЕЙТИ: Підтвердження скасування бронювання
+    // Стейти для скасування бронювання
     const [bookingToCancel, setBookingToCancel] = useState(null);
     const [isCancelConfirmModalOpen, setIsCancelConfirmModalOpen] = useState(false);
+
+    // НОВІ СТЕЙТИ: Редагування профілю
+    const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
+    const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+    const [profileForm, setProfileForm] = useState({
+        first_name: '',
+        last_name: '',
+        age: ''
+    });
 
     useEffect(() => {
         const fetchAllProfileData = async () => {
@@ -66,6 +76,47 @@ export default function UserProfile() {
     };
 
     // ==========================================
+    // ЛОГІКА: РЕДАГУВАННЯ ПРОФІЛЮ
+    // ==========================================
+    const handleOpenEditProfile = () => {
+        setProfileForm({
+            first_name: userInfo?.first_name || '',
+            last_name: userInfo?.last_name || '',
+            age: userInfo?.age || ''
+        });
+        setIsEditProfileModalOpen(true);
+    };
+
+    const handleProfileFormChange = (e) => {
+        const { name, value } = e.target;
+        setProfileForm(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleSaveProfile = async () => {
+        setIsUpdatingProfile(true);
+        try {
+            // Формуємо об'єкт тільки з тими даними, які ми хочемо оновити
+            const payload = {
+                first_name: profileForm.first_name,
+                last_name: profileForm.last_name,
+                age: profileForm.age ? parseInt(profileForm.age) : null
+            };
+
+            const response = await api.patch('clients/me/', payload);
+
+            // Оновлюємо стейт новими даними, що повернув бекенд
+            setUserInfo(response.data);
+            setIsEditProfileModalOpen(false);
+            // Опціонально: можна додати alert("Дані успішно оновлено!");
+        } catch (error) {
+            console.error("Помилка оновлення профілю:", error);
+            alert("Не вдалося оновити дані. Перевірте правильність введених значень.");
+        } finally {
+            setIsUpdatingProfile(false);
+        }
+    };
+
+    // ==========================================
     // ЛОГІКА: ВІДКРИТТЯ ДЕТАЛЕЙ ТА СКАСУВАННЯ
     // ==========================================
     const handleOpenBookingDetails = (booking) => {
@@ -80,12 +131,11 @@ export default function UserProfile() {
 
     const confirmCancelBooking = async () => {
         if (!bookingToCancel) return;
-
         try {
             await api.delete(`bookings/${bookingToCancel}/`);
             setBookings(prevBookings => prevBookings.filter(b => b.id !== bookingToCancel));
             alert("Бронювання успішно скасовано!");
-            setIsBookingDetailsModalOpen(false); // Закриваємо деталі, якщо скасовували звідти
+            setIsBookingDetailsModalOpen(false);
         } catch (error) {
             console.error("Помилка скасування:", error);
             if (error.response && error.response.status === 400) {
@@ -185,7 +235,19 @@ export default function UserProfile() {
             {/* ВКЛАДКА 0: ІНФОРМАЦІЯ */}
             {currentTab === 0 && (
                 <Paper sx={{ p: 4, borderRadius: 2, boxShadow: 2 }}>
-                    <Typography variant="h5" fontWeight="bold" gutterBottom>Особиста інформація</Typography>
+
+                    {/* ЗАГОЛОВОК З КНОПКОЮ РЕДАГУВАННЯ */}
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                        <Typography variant="h5" fontWeight="bold">Особиста інформація</Typography>
+                        <Button
+                            startIcon={<EditIcon />}
+                            variant="outlined"
+                            size="small"
+                            onClick={handleOpenEditProfile}
+                        >
+                            Редагувати
+                        </Button>
+                    </Box>
                     <Divider sx={{ mb: 3 }} />
 
                     <Grid container spacing={4}>
@@ -228,46 +290,21 @@ export default function UserProfile() {
                                 <Grid item xs={12} key={booking.id}>
                                     <Card variant="outlined" sx={{ borderRadius: 3, boxShadow: 1 }}>
                                         <CardContent sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 3, flexWrap: 'wrap', gap: 2 }}>
-
-                                            {/* Спрощена ліва частина */}
                                             <Box sx={{ pr: 3, flexGrow: 1 }}>
-                                                <Typography variant="h6" fontWeight="bold">
-                                                    {booking.room_details?.hostel_name}
-                                                </Typography>
-                                                <Typography variant="body1" color="text.secondary">
-                                                    {booking.start_date} — {booking.last_date}
-                                                </Typography>
+                                                <Typography variant="h6" fontWeight="bold">{booking.room_details?.hostel_name}</Typography>
+                                                <Typography variant="body1" color="text.secondary">{booking.start_date} — {booking.last_date}</Typography>
                                             </Box>
-
-                                            {/* Права частина: Статус і кнопки */}
                                             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1.5, minWidth: '180px' }}>
                                                 {renderStatus(booking.approved)}
-
                                                 <Box sx={{ display: 'flex', gap: 1, mt: 1, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                                                    {/* Кнопка Деталі */}
-                                                    <Button
-                                                        size="small"
-                                                        variant="outlined"
-                                                        color="primary"
-                                                        startIcon={<InfoOutlinedIcon />}
-                                                        onClick={() => handleOpenBookingDetails(booking)}
-                                                    >
+                                                    <Button size="small" variant="outlined" color="primary" startIcon={<InfoOutlinedIcon />} onClick={() => handleOpenBookingDetails(booking)}>
                                                         Деталі
                                                     </Button>
-
-                                                    {/* Кнопка Скасування */}
-                                                    <Button
-                                                        size="small"
-                                                        variant="outlined"
-                                                        color="error"
-                                                        startIcon={<CancelIcon />}
-                                                        onClick={() => handleInitiateCancel(booking.id)}
-                                                    >
+                                                    <Button size="small" variant="outlined" color="error" startIcon={<CancelIcon />} onClick={() => handleInitiateCancel(booking.id)}>
                                                         Скасувати
                                                     </Button>
                                                 </Box>
                                             </Box>
-
                                         </CardContent>
                                     </Card>
                                 </Grid>
@@ -304,7 +341,56 @@ export default function UserProfile() {
             )}
 
             {/* ======================================================= */}
-            {/* МОДАЛКА 1: ДЕТАЛІ БРОНЮВАННЯ */}
+            {/* МОДАЛКА: РЕДАГУВАННЯ ПРОФІЛЮ */}
+            {/* ======================================================= */}
+            <Dialog open={isEditProfileModalOpen} onClose={() => setIsEditProfileModalOpen(false)} maxWidth="sm" fullWidth>
+                <DialogTitle sx={{ fontWeight: 'bold' }}>Редагувати профіль</DialogTitle>
+                <DialogContent dividers>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+                        <TextField
+                            label="Ім'я"
+                            name="first_name"
+                            value={profileForm.first_name}
+                            onChange={handleProfileFormChange}
+                            fullWidth
+                        />
+                        <TextField
+                            label="Прізвище"
+                            name="last_name"
+                            value={profileForm.last_name}
+                            onChange={handleProfileFormChange}
+                            fullWidth
+                        />
+                        <TextField
+                            label="Вік"
+                            name="age"
+                            type="number"
+                            value={profileForm.age}
+                            onChange={handleProfileFormChange}
+                            fullWidth
+                        />
+                        <Typography variant="caption" color="text.secondary">
+                            * Електронну пошту неможливо змінити після реєстрації.
+                        </Typography>
+                    </Box>
+                </DialogContent>
+                <DialogActions sx={{ p: 2 }}>
+                    <Button onClick={() => setIsEditProfileModalOpen(false)} color="inherit">
+                        Скасувати
+                    </Button>
+                    <Button
+                        onClick={handleSaveProfile}
+                        variant="contained"
+                        color="primary"
+                        disabled={isUpdatingProfile}
+                    >
+                        {isUpdatingProfile ? <CircularProgress size={24} color="inherit" /> : "Зберегти зміни"}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* ======================================================= */}
+            {/* МОДАЛКА: ДЕТАЛІ БРОНЮВАННЯ */}
             {/* ======================================================= */}
             <Dialog open={isBookingDetailsModalOpen} onClose={() => setIsBookingDetailsModalOpen(false)} maxWidth="sm" fullWidth>
                 <DialogTitle sx={{ fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -344,12 +430,7 @@ export default function UserProfile() {
                 <DialogActions sx={{ p: 2, justifyContent: 'space-between' }}>
                     <Box>
                         {selectedBooking?.approved === true && (
-                            <Button
-                                variant="contained"
-                                color="primary"
-                                startIcon={<ReceiptLongIcon />}
-                                onClick={() => downloadPDF(selectedBooking.id)}
-                            >
+                            <Button variant="contained" color="primary" startIcon={<ReceiptLongIcon />} onClick={() => downloadPDF(selectedBooking.id)}>
                                 Квитанція
                             </Button>
                         )}
@@ -361,7 +442,7 @@ export default function UserProfile() {
             </Dialog>
 
             {/* ======================================================= */}
-            {/* МОДАЛКА 2: ПІДТВЕРДЖЕННЯ СКАСУВАННЯ */}
+            {/* МОДАЛКА: ПІДТВЕРДЖЕННЯ СКАСУВАННЯ */}
             {/* ======================================================= */}
             <Dialog open={isCancelConfirmModalOpen} onClose={() => setIsCancelConfirmModalOpen(false)}>
                 <DialogTitle sx={{ color: 'error.main', fontWeight: 'bold' }}>Підтвердження скасування</DialogTitle>
@@ -377,7 +458,7 @@ export default function UserProfile() {
             </Dialog>
 
             {/* ======================================================= */}
-            {/* МОДАЛКА 3: ВИДАЛЕННЯ АКАУНТА (Залишається без змін) */}
+            {/* МОДАЛКА: ВИДАЛЕННЯ АКАУНТА */}
             {/* ======================================================= */}
             <Dialog open={isDeleteDialogOpen} onClose={() => setIsDeleteDialogOpen(false)}>
                 <DialogTitle sx={{ color: 'error.main', fontWeight: 'bold' }}>⚠️ Видалення акаунта</DialogTitle>
