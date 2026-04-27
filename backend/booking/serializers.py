@@ -33,13 +33,29 @@ class DeleteAccountSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True, required=True)
 
 class ClientSerializer(serializers.ModelSerializer):
-    first_name = serializers.ReadOnlyField()
-    last_name = serializers.ReadOnlyField()
-    email = serializers.ReadOnlyField()
-    fullname = serializers.ReadOnlyField()
+    first_name = serializers.CharField(source='user.first_name')
+    last_name = serializers.CharField(source='user.last_name')
+    email = serializers.CharField(source='user.email')
+
+    # fullname = serializers.ReadOnlyField()
     class Meta:
         model = Client
         fields = ['id', 'first_name', 'last_name', 'email', 'fullname', 'age', 'last_login']
+        read_only_fields = ['id', 'fullname', 'last_login']
+
+    def validate_email(self, value):
+        if self.instance:
+            user = self.instance.user
+            if User.objects.filter(email=value).exclude(pk=user.pk).exists():
+                raise serializers.ValidationError("Користувач з такою поштою вже існує.")
+        return value
+
+    def update(self, instance, validated_data):
+        user_data = validated_data.pop('user', {})
+        for attr, val in user_data.items():
+            setattr(instance.user, attr, val)
+        instance.user.save()
+        return super().update(instance, validated_data)
 
 class RoomSerializer(serializers.ModelSerializer):
     hostel_name = serializers.ReadOnlyField(source='hostel.name')
