@@ -8,7 +8,7 @@ from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, generics, status, viewsets
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
-from rest_framework.decorators import action
+from rest_framework.decorators import action, parser_classes
 from rest_framework.response import Response
 from .permissions import IsAdminOrReadOnly, IsClientOrAdmin, IsAuthorOrReadOnly
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -18,7 +18,7 @@ from .models import Booking, Client, Hostel, Room, RoomImage, Reviews, HostelIma
 from .serializers import (BookingSerializer, ClientSerializer,
                           HostelSerializer, RegisterSerializer,
                           RoomSerializer, NotificationSerializer,
-                          ReviewsSerializer, HostelImageSerializer, DeleteAccountSerializer)
+                          ReviewsSerializer, HostelImageSerializer, DeleteAccountSerializer, RoomImageSerializer)
 
 from rest_framework import viewsets, status
 from rest_framework.response import Response
@@ -99,6 +99,32 @@ class RoomViewSet(viewsets.ModelViewSet):
             raise PermissionDenied("Ви не можете редагувати номери в чужому готелі!")
 
         serializer.save()
+
+    @action(detail=True, methods=['post'], parser_classes=[MultiPartParser])
+    def upload_image(self, request, pk=None):
+        room = self.get_object()
+
+        if not request.user.is_superuser and room.hostel.admin != request.user:
+            raise PermissionDenied("Ви не можете додавати фото до чужого номеру!")
+        images = request.FILES.getlist('images')
+        if not images:
+            return Response({"error": "Фото не передані"}, status=400)
+
+        created = []
+        for image in images:
+            obj = RoomImage.objects.create(room=room, image=image)
+            created.append(RoomImageSerializer(obj).data)
+
+        return Response(created, status=201)
+
+    @action(detail=True, methods=['delete'], url_path='delete_image/(?P<image_id>[^/.]+)')
+    def delete_image(self, request, pk=None, image_id=None):
+        room = self.get_object()
+        if not request.user.is_superuser and room.hostel.admin != request.user:
+            raise PermissionDenied("Ви не можете видаляти фото з чужого номеру!")
+        image = get_object_or_404(RoomImage, id=image_id, room=room)
+        image.delete()
+        return Response(status=204)
 
 
 class HostelViewSet(viewsets.ModelViewSet):
