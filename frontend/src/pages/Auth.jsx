@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
     Box, TextField, Button, Typography, Paper,
     InputAdornment, IconButton, Grid, Container,
-    Snackbar, Alert // Імпортуємо компоненти для красивих сповіщень
+    Snackbar, Alert
 } from '@mui/material';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
@@ -25,12 +25,12 @@ export default function Auth() {
     const [isLoading, setIsLoading] = useState(false);
 
     // ==========================================
-    // СТЕЙТ ДЛЯ СНАКБАРІВ (Спливаючих повідомлень)
+    // СТЕЙТ ДЛЯ СНАКБАРІВ
     // ==========================================
     const [snackbar, setSnackbar] = useState({
         open: false,
         message: '',
-        severity: 'success' // 'success' | 'error' | 'warning' | 'info'
+        severity: 'success'
     });
 
     const handleCloseSnackbar = (event, reason) => {
@@ -90,7 +90,6 @@ export default function Auth() {
 
                 if (role === 'admin') {
                     showMessage("Вітаємо в системі, Адміністраторе! 👑", "success");
-                    // Затримка, щоб адмін побачив повідомлення перед редіректом
                     setTimeout(() => {
                         window.location.href = '/admin/dashboard';
                     }, 1500);
@@ -105,7 +104,7 @@ export default function Auth() {
                 console.error("Помилка логіну:", error);
                 showMessage("❌ Невірний логін або пароль!", "error");
                 localStorage.clear();
-                setIsLoading(false); // Знімаємо лоадер тільки якщо помилка, при успіху хай крутиться до редіректу
+                setIsLoading(false);
             }
         }
     };
@@ -128,11 +127,14 @@ export default function Auth() {
                         display: 'flex',
                         borderRadius: 4,
                         overflow: 'hidden',
-                        boxShadow: '0px 20px 50px rgba(0,0,0,0.1)',
-                        minHeight: '600px'
+                        boxShadow: (theme) => theme.palette.mode === 'light'
+                            ? '0px 20px 50px rgba(0,0,0,0.1)'
+                            : '0px 20px 50px rgba(0,0,0,0.5)',
+                        minHeight: '600px',
+                        border: (theme) => theme.palette.mode === 'dark' ? '1px solid #333' : 'none'
                     }}
                 >
-                    {/* ЛІВА ЧАСТИНА: Картинка (Схована на мобільних) */}
+                    {/* ЛІВА ЧАСТИНА: Картинка */}
                     <Box
                         sx={{
                             width: { xs: '0%', md: '50%' },
@@ -143,7 +145,6 @@ export default function Auth() {
                             backgroundPosition: 'center',
                         }}
                     >
-                        {/* Темний градієнт та текст поверх фото */}
                         <Box sx={{
                             position: 'absolute', inset: 0,
                             background: 'linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.7))',
@@ -189,26 +190,25 @@ export default function Auth() {
                                 margin="normal" required fullWidth
                                 label="Логін (Username)" name="username"
                                 value={formData.username} onChange={handleChange}
-                                sx={{ bgcolor: '#fafafa' }}
                             />
 
                             {!isLogin && (
                                 <>
                                     <Grid container spacing={2} sx={{ mt: 0 }}>
                                         <Grid item xs={12} sm={6}>
-                                            <TextField required fullWidth label="Ім'я" name="first_name" value={formData.first_name} onChange={handleChange} sx={{ bgcolor: '#fafafa' }} />
+                                            <TextField required fullWidth label="Ім'я" name="first_name" value={formData.first_name} onChange={handleChange} sx={{ bgcolor: 'background.default' }} />
                                         </Grid>
                                         <Grid item xs={12} sm={6}>
-                                            <TextField required fullWidth label="Прізвище" name="last_name" value={formData.last_name} onChange={handleChange} sx={{ bgcolor: '#fafafa' }} />
+                                            <TextField required fullWidth label="Прізвище" name="last_name" value={formData.last_name} onChange={handleChange} sx={{ bgcolor: 'background.default' }} />
                                         </Grid>
                                     </Grid>
 
                                     <Grid container spacing={2} sx={{ mt: 0 }}>
                                         <Grid item xs={12} sm={4}>
-                                            <TextField required fullWidth label="Вік" name="age" type="number" value={formData.age} onChange={handleChange} sx={{ bgcolor: '#fafafa' }} />
+                                            <TextField required fullWidth label="Вік" name="age" type="number" value={formData.age} onChange={handleChange} sx={{ bgcolor: 'background.default' }} />
                                         </Grid>
                                         <Grid item xs={12} sm={8}>
-                                            <TextField required fullWidth label="Email" name="email" type="email" value={formData.email} onChange={handleChange} sx={{ bgcolor: '#fafafa' }} />
+                                            <TextField required fullWidth label="Email" name="email" type="email" value={formData.email} onChange={handleChange} sx={{ bgcolor: 'background.default' }} />
                                         </Grid>
                                     </Grid>
                                 </>
@@ -219,7 +219,7 @@ export default function Auth() {
                                 label="Пароль" name="password"
                                 type={showPassword ? 'text' : 'password'}
                                 value={formData.password} onChange={handleChange}
-                                sx={{ bgcolor: '#fafafa', mb: 3 }}
+                                sx={{ mb: 3 }}
                                 InputProps={{
                                     endAdornment: (
                                         <InputAdornment position="end">
@@ -259,7 +259,6 @@ export default function Auth() {
                 </Paper>
             </Container>
 
-            {/* КОМПОНЕНТ СНАКБАРУ */}
             <Snackbar
                 open={snackbar.open}
                 autoHideDuration={4000}

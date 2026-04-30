@@ -144,27 +144,15 @@ export default function UserProfile() {
         }
     };
 
-
     const handleInitiateCancel = (booking) => {
         const now = new Date();
-        // Встановлюємо час поточної дати на 00:00 для коректного порівняння по днях
         now.setHours(0, 0, 0, 0);
-
         const startDate = new Date(booking.start_date);
         const endDate = new Date(booking.last_date);
 
-        // 1. Перевірка: Бронювання вже минуло (дата виїзду в минулому)
-        if (now > endDate) {
-            return showNotify("Це бронювання вже завершилось (дати минули). Скасування неможливе.", "error");
-        }
+        if (now > endDate) return showNotify("Це бронювання вже завершилось (дати минули). Скасування неможливе.", "error");
+        if (now >= startDate && now <= endDate) return showNotify("Ви не можете скасувати бронювання, яке вже почалося.", "warning");
 
-        // 2. Перевірка: Бронювання зараз активне (ми між датою заїзду та виїзду)
-        if (now >= startDate && now <= endDate) {
-            return showNotify("Ви не можете скасувати бронювання, яке вже почалося.", "warning");
-        }
-
-        // 3. Перевірка на 24 години (Фронтенд-захист)
-        // Рахуємо різницю в мілісекундах і переводимо в години
         const timeDiff = new Date(booking.start_date).getTime() - new Date().getTime();
         const hoursUntilCheckIn = timeDiff / (1000 * 3600);
 
@@ -172,7 +160,6 @@ export default function UserProfile() {
             return showNotify("Скасування неможливе: до заїзду залишилося менше 24 годин.", "error");
         }
 
-        // Якщо всі перевірки пройдені — дозволяємо відкрити модалку
         setBookingToCancel(booking.id);
         setIsCancelConfirmModalOpen(true);
     };
@@ -236,7 +223,7 @@ export default function UserProfile() {
     return (
         <Container maxWidth="md" sx={{ mt: 5, mb: 10 }}>
             {/* ШАПКА */}
-            <Paper elevation={0} sx={{ p: 4, display: 'flex', alignItems: 'center', gap: 3, mb: 4, borderRadius: 4, border: '1px solid #e0e0e0' }}>
+            <Paper elevation={0} sx={{ p: 4, display: 'flex', alignItems: 'center', gap: 3, mb: 4, borderRadius: 4, border: (theme) => theme.palette.mode === 'dark' ? '1px solid #333' : '1px solid #e0e0e0' }}>
                 <Avatar sx={{ width: 80, height: 80, bgcolor: 'primary.main', fontSize: 36, fontWeight: 'bold' }}>
                     {userInfo?.first_name?.charAt(0) || '👤'}
                 </Avatar>
@@ -260,7 +247,7 @@ export default function UserProfile() {
 
             {/* ВКЛАДКА 0: ДАНІ */}
             {currentTab === 0 && (
-                <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: '1px solid #e0e0e0' }}>
+                <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: (theme) => theme.palette.mode === 'dark' ? '1px solid #333' : '1px solid #e0e0e0' }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
                         <Typography variant="h5" fontWeight="bold">Особиста інформація</Typography>
                         <Button startIcon={<EditIcon />} variant="outlined" onClick={handleOpenEditProfile}>Редагувати</Button>
@@ -276,7 +263,12 @@ export default function UserProfile() {
                         </Grid>
                     </Grid>
                     <Divider sx={{ my: 4 }} />
-                    <Box sx={{ p: 2, bgcolor: '#fff5f5', borderRadius: 3 }}>
+                    <Box sx={{
+                        p: 2,
+                        // Динамічний фон небезпечної зони
+                        bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(211, 47, 47, 0.1)' : '#fff5f5',
+                        borderRadius: 3
+                    }}>
                         <Typography variant="subtitle2" color="error" fontWeight="bold">Небезпечна зона</Typography>
                         <Button color="error" sx={{ mt: 1 }} onClick={() => setIsDeleteDialogOpen(true)}>Видалити акаунт</Button>
                     </Box>
@@ -292,10 +284,9 @@ export default function UserProfile() {
                         </Typography>
                     ) : (
                         bookings.map(b => {
-                            // Визначаємо колір лівої смужки залежно від статусу
-                            let accentColor = '#ff9800'; // Помаранчевий (Очікує)
-                            if (b.approved === true) accentColor = '#4caf50'; // Зелений (Схвалено)
-                            if (b.approved === false) accentColor = '#f44336'; // Червоний (Відхилено)
+                            let accentColor = '#ff9800';
+                            if (b.approved === true) accentColor = '#4caf50';
+                            if (b.approved === false) accentColor = '#f44336';
 
                             return (
                                 <Grid item xs={12} sm={6} key={b.id}>
@@ -303,14 +294,15 @@ export default function UserProfile() {
                                         elevation={0}
                                         sx={{
                                             borderRadius: 4,
-                                            bgcolor: '#ffffff', // Явно білий фон картки
-                                            border: '1px solid #eaeaea',
-                                            borderLeft: `8px solid ${accentColor}`, // Кольоровий акцент зліва
-                                            boxShadow: '0 4px 15px rgba(0,0,0,0.06)', // Постійна м'яка тінь
+                                            // Магія динамічного фону
+                                            bgcolor: 'background.paper',
+                                            border: (theme) => theme.palette.mode === 'dark' ? '1px solid #333' : '1px solid #eaeaea',
+                                            borderLeft: `8px solid ${accentColor}`,
+                                            boxShadow: (theme) => theme.palette.mode === 'dark' ? '0 4px 15px rgba(0,0,0,0.4)' : '0 4px 15px rgba(0,0,0,0.06)',
                                             transition: 'transform 0.3s ease, box-shadow 0.3s ease',
                                             '&:hover': {
                                                 transform: 'translateY(-4px)',
-                                                boxShadow: '0 10px 30px rgba(0,0,0,0.12)'
+                                                boxShadow: (theme) => theme.palette.mode === 'dark' ? '0 10px 30px rgba(0,0,0,0.6)' : '0 10px 30px rgba(0,0,0,0.12)'
                                             }
                                         }}
                                     >
@@ -329,14 +321,20 @@ export default function UserProfile() {
                                                     <IconButton
                                                         size="small"
                                                         onClick={() => { setSelectedBooking(b); setIsBookingDetailsModalOpen(true); }}
-                                                        sx={{ border: '1px solid #e0e0e0', '&:hover': { bgcolor: 'primary.50' } }}
+                                                        sx={{
+                                                            border: (theme) => theme.palette.mode === 'dark' ? '1px solid #444' : '1px solid #e0e0e0',
+                                                            '&:hover': { bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(25, 118, 210, 0.1)' : 'primary.50' }
+                                                        }}
                                                     >
                                                         <InfoOutlinedIcon color="primary" fontSize="small" />
                                                     </IconButton>
                                                     <IconButton
                                                         size="small"
                                                         onClick={() => handleInitiateCancel(b)}
-                                                        sx={{ border: '1px solid #e0e0e0', '&:hover': { bgcolor: 'error.50' } }}
+                                                        sx={{
+                                                            border: (theme) => theme.palette.mode === 'dark' ? '1px solid #444' : '1px solid #e0e0e0',
+                                                            '&:hover': { bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(211, 47, 47, 0.1)' : 'error.50' }
+                                                        }}
                                                     >
                                                         <CancelIcon color="error" fontSize="small" />
                                                     </IconButton>
@@ -357,7 +355,7 @@ export default function UserProfile() {
                     <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
                         <Button startIcon={<DoneAllIcon />} onClick={handleReadAll} disabled={unreadCount === 0}>Прочитати всі</Button>
                     </Box>
-                    <Paper elevation={0} sx={{ borderRadius: 4, border: '1px solid #e0e0e0', overflow: 'hidden' }}>
+                    <Paper elevation={0} sx={{ borderRadius: 4, border: (theme) => theme.palette.mode === 'dark' ? '1px solid #333' : '1px solid #e0e0e0', overflow: 'hidden' }}>
                         {messages.length === 0 ? (
                             <Typography sx={{ p: 4 }} align="center">Список порожній</Typography>
                         ) : (
@@ -408,7 +406,12 @@ export default function UserProfile() {
                             <Typography variant="h6" color="primary" fontWeight="bold">{selectedBooking.price} грн</Typography>
 
                             {selectedBooking.request_text && (
-                                <Box sx={{ p: 2, mt: 2, bgcolor: '#f5f5f5', borderRadius: 2 }}>
+                                <Box sx={{
+                                    p: 2,
+                                    mt: 2,
+                                    bgcolor: 'background.default', // Динамічний фон замість #f5f5f5
+                                    borderRadius: 2
+                                }}>
                                     <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', fontWeight: 'bold' }}>Ваші побажання</Typography>
                                     <Typography variant="body2" sx={{ fontStyle: 'italic', mt: 0.5 }}>"{selectedBooking.request_text}"</Typography>
                                 </Box>
@@ -427,6 +430,8 @@ export default function UserProfile() {
                     <Button onClick={() => setIsBookingDetailsModalOpen(false)} variant="outlined">Закрити</Button>
                 </DialogActions>
             </Dialog>
+
+            {/* ІНШІ МОДАЛКИ ЗАЛИШЕНО БЕЗ ЗМІН, ВОНИ ВЖЕ СУМІСНІ */}
 
             {/* МОДАЛКА СКАСУВАННЯ */}
             <Dialog open={isCancelConfirmModalOpen} onClose={() => setIsCancelConfirmModalOpen(false)} PaperProps={{ sx: { borderRadius: 4 } }}>

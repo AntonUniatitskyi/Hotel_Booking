@@ -8,8 +8,10 @@ import HotelIcon from '@mui/icons-material/Hotel';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import LogoutIcon from '@mui/icons-material/Logout';
+import Brightness4Icon from '@mui/icons-material/Brightness4'; // Місяць
+import Brightness7Icon from '@mui/icons-material/Brightness7'; // Сонце
 
-export default function Navbar() {
+export default function Navbar({ toggleTheme, mode }) {
     const location = useLocation();
 
     // Стейти для випадаючого меню
@@ -36,14 +38,14 @@ export default function Navbar() {
             position="sticky"
             elevation={0}
             sx={{
-                bgcolor: 'rgba(50, 2, 100, 0.50)',
+                // Змінюємо колір шапки залежно від теми
+                bgcolor: mode === 'light' ? 'rgba(255, 255, 255, 0.85)' : 'rgba(18, 18, 18, 0.85)',
                 backdropFilter: 'blur(16px)', // Ефект матового скла
-                borderBottom: '1px solid rgba(0,0,0,0.05)',
+                borderBottom: mode === 'light' ? '1px solid rgba(0,0,0,0.05)' : '1px solid rgba(255,255,255,0.05)',
                 color: 'text.primary',
                 zIndex: 1100
             }}
         >
-            {/* Container, щоб контент шапки не розповзався на надшироких екранах */}
             <Container maxWidth="xl">
                 <Toolbar disableGutters sx={{ display: 'flex', justifyContent: 'space-between' }}>
 
@@ -69,10 +71,18 @@ export default function Navbar() {
                     </Typography>
 
                     {/* ПРАВА ЧАСТИНА (Навігація) */}
-                    <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                    <Box sx={{ display: 'flex', gap: { xs: 1, sm: 2 }, alignItems: 'center' }}>
+
+                        {/* 🌓 КНОПКА ЗМІНИ ТЕМИ */}
+                        <Tooltip title={mode === 'light' ? "Увімкнути темну тему" : "Увімкнути світлу тему"}>
+                            <IconButton onClick={toggleTheme} color="inherit" size="small" sx={{ p: 1 }}>
+                                {mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
+                            </IconButton>
+                        </Tooltip>
+
                         {token ? (
                             <>
-                                {/* 👑 КНОПКА АДМІНА (Видна тільки на ПК для швидкого доступу) */}
+                                {/* 👑 КНОПКА АДМІНА (Видна тільки на ПК) */}
                                 {role === 'admin' && (
                                     <Button
                                         component={Link}
@@ -93,7 +103,7 @@ export default function Navbar() {
                                         size="small"
                                         sx={{
                                             p: 0.5,
-                                            border: '1px solid #eaeaea',
+                                            border: mode === 'light' ? '1px solid #eaeaea' : '1px solid #333',
                                             transition: 'all 0.2s',
                                             '&:hover': { boxShadow: '0px 4px 12px rgba(0,0,0,0.1)' }
                                         }}
@@ -104,7 +114,7 @@ export default function Navbar() {
                                     </IconButton>
                                 </Tooltip>
 
-                                {/* ВИПАДАЮЧЕ МЕНЮ (Dropdown) */}
+                                {/* ВИПАДАЮЧЕ МЕНЮ */}
                                 <Menu
                                     anchorEl={anchorEl}
                                     open={open}
@@ -114,11 +124,10 @@ export default function Navbar() {
                                         elevation: 0,
                                         sx: {
                                             overflow: 'visible',
-                                            filter: 'drop-shadow(0px 10px 20px rgba(0,0,0,0.1))',
+                                            filter: mode === 'light' ? 'drop-shadow(0px 10px 20px rgba(0,0,0,0.1))' : 'drop-shadow(0px 10px 20px rgba(0,0,0,0.5))',
                                             mt: 1.5,
-                                            borderRadius: 3,
+                                            borderRadius: 2,
                                             minWidth: 200,
-                                            // Маленький трикутничок зверху меню
                                             '&::before': {
                                                 content: '""', display: 'block', position: 'absolute', top: 0, right: 18,
                                                 width: 10, height: 10, bgcolor: 'background.paper', transform: 'translateY(-50%) rotate(45deg)', zIndex: 0,
@@ -128,7 +137,6 @@ export default function Navbar() {
                                     transformOrigin={{ horizontal: 'right', vertical: 'top' }}
                                     anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
                                 >
-                                    {/* Пункт адмінки дублюється для мобільних екранів */}
                                     {role === 'admin' && (
                                         <MenuItem component={Link} to="/admin/dashboard" sx={{ display: { xs: 'flex', md: 'none' }, py: 1.5 }}>
                                             <ListItemIcon><DashboardIcon fontSize="small" color="primary" /></ListItemIcon>
@@ -136,7 +144,6 @@ export default function Navbar() {
                                         </MenuItem>
                                     )}
 
-                                    {/* Пункт клієнта */}
                                     {role !== 'admin' && (
                                         <MenuItem component={Link} to="/profile" sx={{ py: 1.5 }}>
                                             <ListItemIcon><AccountCircleIcon fontSize="small" color="primary" /></ListItemIcon>
@@ -153,15 +160,12 @@ export default function Navbar() {
                                 </Menu>
                             </>
                         ) : (
-                            /* ========================================== */
-                            /* ЯКЩО ГІСТЬ                                 */
-                            /* ========================================== */
                             <Button
                                 component={Link}
                                 to="/login"
                                 variant="contained"
                                 color="primary"
-                                sx={{ boxShadow: '0px 4px 10px rgba(255, 90, 95, 0.3)' }}
+                                sx={{ boxShadow: mode === 'light' ? '0px 4px 10px rgba(255, 90, 95, 0.3)' : 'none' }}
                             >
                                 Увійти
                             </Button>

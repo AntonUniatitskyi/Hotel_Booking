@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import {
     Container, Typography, Box, CircularProgress, Grid, Paper, Divider, Button,
     Rating, TextField, List, ListItem, ListItemAvatar, Avatar, ListItemText,
-    Snackbar, Alert // Додаємо імпорти для спливаючих повідомлень
+    Snackbar, Alert
 } from '@mui/material';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
@@ -20,9 +20,6 @@ export default function HotelDetails() {
     const [reviewText, setReviewText] = useState('');
     const [isSubmittingReview, setIsSubmittingReview] = useState(false);
 
-    // ==========================================
-    // СТЕЙТ ДЛЯ СНАКБАРІВ
-    // ==========================================
     const [snackbar, setSnackbar] = useState({
         open: false,
         message: '',
@@ -60,9 +57,6 @@ export default function HotelDetails() {
         setSnackbar({ ...snackbar, open: false });
     };
 
-    // ==========================================
-    // ОБРОБКА ВІДПРАВКИ ВІДГУКУ
-    // ==========================================
     const handleReviewSubmit = async (e) => {
         e.preventDefault();
         if (!reviewText.trim()) {
@@ -85,12 +79,10 @@ export default function HotelDetails() {
         } catch (error) {
             console.error("Помилка при збереженні відгуку:", error);
 
-            // 1. ПЕРЕХОПЛЮЄМО ПАДІННЯ БЕКЕНДУ (500 помилка - IntegrityError)
             if (error.response && error.response.status === 500) {
                 return showNotify("❌ Ви вже залишали відгук для цього готелю!", "error");
             }
 
-            // 2. Розумне витягування інших стандартних помилок DRF (400, 403 тощо)
             const backendData = error.response?.data;
             let errorMessage = "Не вдалося додати відгук. Перевірте авторизацію.";
 
@@ -105,7 +97,6 @@ export default function HotelDetails() {
                     }
                 }
             } else if (typeof backendData === 'string') {
-                // Якщо бекенд чомусь віддав текст замість JSON
                 errorMessage = "Помилка сервера. Спробуйте пізніше.";
             }
 
@@ -178,7 +169,7 @@ export default function HotelDetails() {
                             <HotelIcon color="primary" /> Про готель
                         </Typography>
                         <Divider sx={{ mb: 3, width: '40px', borderWidth: 2, borderColor: 'primary.main', borderRadius: 2 }} />
-                        <Typography variant="body1" sx={{ whiteSpace: 'pre-line', lineHeight: 1.8, color: '#4a4a4a', fontSize: '1.05rem' }}>
+                        <Typography variant="body1" sx={{ whiteSpace: 'pre-line', lineHeight: 1.8, color: 'text.primary', fontSize: '1.05rem' }}>
                             {hotel.about}
                         </Typography>
                     </Box>
@@ -191,7 +182,13 @@ export default function HotelDetails() {
                         <Divider sx={{ mb: 4 }} />
 
                         {token ? (
-                            <Paper elevation={0} sx={{ p: 3, mb: 5, border: '1px solid #e0e0e0', borderRadius: 3, bgcolor: '#fafafa' }}>
+                            <Paper elevation={0} sx={{
+                                p: 3,
+                                mb: 5,
+                                border: (theme) => theme.palette.mode === 'dark' ? '1px solid #333' : '1px solid #e0e0e0',
+                                borderRadius: 3,
+                                bgcolor: 'background.default'
+                            }}>
                                 <Typography variant="subtitle1" fontWeight="bold" gutterBottom>Ваші враження</Typography>
                                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                                     <Rating value={ratingValue} onChange={(e, val) => setRatingValue(val)} size="large" />
@@ -201,7 +198,7 @@ export default function HotelDetails() {
                                     placeholder="Що вам сподобалось чи не сподобалось?"
                                     value={reviewText}
                                     onChange={(e) => setReviewText(e.target.value)}
-                                    sx={{ mb: 2, bgcolor: 'white' }}
+                                    sx={{ mb: 2 }}
                                 />
                                 <Button
                                     type="submit"
@@ -215,7 +212,14 @@ export default function HotelDetails() {
                                 </Button>
                             </Paper>
                         ) : (
-                            <Paper elevation={0} sx={{ p: 3, mb: 5, border: '1px dashed #ccc', borderRadius: 3, textAlign: 'center' }}>
+                            <Paper elevation={0} sx={{
+                                p: 3,
+                                mb: 5,
+                                border: (theme) => theme.palette.mode === 'dark' ? '1px dashed #555' : '1px dashed #ccc',
+                                borderRadius: 3,
+                                textAlign: 'center',
+                                bgcolor: 'transparent'
+                            }}>
                                 <Typography color="text.secondary">
                                     <Link to="/login" style={{ color: '#FF5A5F', fontWeight: 'bold', textDecoration: 'none' }}>Увійдіть</Link>, щоб залишити свій відгук.
                                 </Typography>
@@ -268,11 +272,12 @@ export default function HotelDetails() {
                         elevation={0}
                         sx={{
                             p: 4,
-                            border: '1px solid #e0e0e0',
+                            border: (theme) => theme.palette.mode === 'dark' ? '1px solid #333' : '1px solid #e0e0e0',
+                            bgcolor: 'background.paper',
                             borderRadius: 4,
                             position: 'sticky',
                             top: 100,
-                            boxShadow: '0px 15px 40px rgba(0,0,0,0.08)'
+                            boxShadow: (theme) => theme.palette.mode === 'dark' ? '0px 15px 40px rgba(0,0,0,0.4)' : '0px 15px 40px rgba(0,0,0,0.08)'
                         }}
                     >
                         <Typography variant="h5" fontWeight="bold" gutterBottom>
@@ -297,7 +302,6 @@ export default function HotelDetails() {
                 </Grid>
             </Grid>
 
-            {/* КОМПОНЕНТ СНАКБАРУ */}
             <Snackbar
                 open={snackbar.open}
                 autoHideDuration={4000}

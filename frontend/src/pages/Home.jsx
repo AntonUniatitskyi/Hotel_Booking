@@ -67,23 +67,30 @@ export default function Home() {
             {/* ========================================== */}
             <Container maxWidth="md" sx={{ position: 'relative', mt: { xs: -4, md: -7 }, mb: 10, zIndex: 2 }}>
                 <Box sx={{
-                    p: 1,
-                    bgcolor: 'rgba(255, 255, 255, 0.3)',
-                    backdropFilter: 'blur(20px)', // Ефект сильного розмиття
+                    p: 1, // Ідеально рівномірний відступ скла з усіх боків
+                    // Робимо скло розумним: світле для світлої теми, затемнене для темної
+                    bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(0, 0, 0, 0.4)' : 'rgba(255, 255, 255, 0.3)',
+                    backdropFilter: 'blur(20px)',
                     borderRadius: '60px',
-                    boxShadow: '0 10px 40px rgba(0, 0, 0, 0.15)',
-                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    boxShadow: (theme) => theme.palette.mode === 'dark' ? '0 10px 40px rgba(0, 0, 0, 0.5)' : '0 10px 40px rgba(0, 0, 0, 0.15)',
+                    border: (theme) => theme.palette.mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.05)' : '1px solid rgba(255, 255, 255, 0.3)',
                 }}>
                     <Paper
                         elevation={0}
                         sx={{
-                            p: 1.5,
                             display: 'flex',
                             flexDirection: { xs: 'column', md: 'row' },
                             alignItems: 'center',
                             gap: 2,
+                            p: 1,
+                            pl: 3,
+                            // ВИДАЛЕНО зайві mt: 4 та mx: 'auto', які ламали симетрію!
                             borderRadius: '50px',
-                            bgcolor: 'white',
+                            bgcolor: 'background.paper',
+                            boxShadow: (theme) => theme.palette.mode === 'light'
+                                ? '0px 15px 40px rgba(0,0,0,0.1)'
+                                : '0px 15px 40px rgba(0,0,0,0.6)',
+                            border: (theme) => theme.palette.mode === 'dark' ? '1px solid #333' : 'none'
                         }}
                     >
                         <TextField

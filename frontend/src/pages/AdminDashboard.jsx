@@ -50,6 +50,7 @@ export default function AdminDashboard() {
     const [editingRoom, setEditingRoom] = useState(null);
     const [pendingRoomGalleryFiles, setPendingRoomGalleryFiles] = useState([]);
     const [uploadingRoomImage, setUploadingRoomImage] = useState(false);
+
     const showNotify = (message, severity = 'success') => {
         setSnackbar({ open: true, message, severity });
     };
@@ -65,7 +66,7 @@ export default function AdminDashboard() {
             const [bookingsRes, hostelsRes, roomsRes] = await Promise.all([
                 api.get('bookings/'),
                 api.get('hostels/'),
-                api.get('rooms/') // Завантажуємо всі кімнати
+                api.get('rooms/')
             ]);
             setBookings(Array.isArray(bookingsRes.data) ? bookingsRes.data : bookingsRes.data.results || []);
             setMyHostels(Array.isArray(hostelsRes.data) ? hostelsRes.data : hostelsRes.data.results || []);
@@ -80,7 +81,6 @@ export default function AdminDashboard() {
 
     useEffect(() => { loadAllData(); }, []);
 
-    // Статистика для Дашбордів
     const pendingCount = bookings.filter(b => b.approved === null).length;
     const totalHotels = myHostels.length;
     const totalBookings = bookings.length;
@@ -328,7 +328,11 @@ export default function AdminDashboard() {
             {/* СТАТИСТИКА (ДАШБОРДИ) */}
             <Grid container spacing={3} sx={{ mb: 5 }}>
                 <Grid item xs={12} md={4}>
-                    <Card elevation={0} sx={{ border: '1px solid #e0e0e0', borderRadius: 4, bgcolor: '#f8f9fa' }}>
+                    <Card elevation={0} sx={{
+                        border: (theme) => theme.palette.mode === 'dark' ? '1px solid #333' : '1px solid #e0e0e0',
+                        borderRadius: 4,
+                        bgcolor: 'background.paper'
+                    }}>
                         <CardContent sx={{ display: 'flex', alignItems: 'center', p: 3 }}>
                             <Avatar sx={{ bgcolor: 'primary.main', width: 56, height: 56, mr: 2 }}><DomainIcon fontSize="large" /></Avatar>
                             <Box>
@@ -339,7 +343,11 @@ export default function AdminDashboard() {
                     </Card>
                 </Grid>
                 <Grid item xs={12} md={4}>
-                    <Card elevation={0} sx={{ border: '1px solid #e0e0e0', borderRadius: 4, bgcolor: '#f8f9fa' }}>
+                    <Card elevation={0} sx={{
+                        border: (theme) => theme.palette.mode === 'dark' ? '1px solid #333' : '1px solid #e0e0e0',
+                        borderRadius: 4,
+                        bgcolor: 'background.paper'
+                    }}>
                         <CardContent sx={{ display: 'flex', alignItems: 'center', p: 3 }}>
                             <Avatar sx={{ bgcolor: 'secondary.main', width: 56, height: 56, mr: 2 }}><AssignmentIcon fontSize="large" /></Avatar>
                             <Box>
@@ -350,12 +358,16 @@ export default function AdminDashboard() {
                     </Card>
                 </Grid>
                 <Grid item xs={12} md={4}>
-                    <Card elevation={0} sx={{ border: '1px solid #ffcc80', borderRadius: 4, bgcolor: '#fff8e1' }}>
+                    <Card elevation={0} sx={{
+                        border: (theme) => theme.palette.mode === 'dark' ? '1px solid #ff9800' : '1px solid #ffcc80',
+                        borderRadius: 4,
+                        bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255, 152, 0, 0.1)' : '#fff8e1'
+                    }}>
                         <CardContent sx={{ display: 'flex', alignItems: 'center', p: 3 }}>
                             <Avatar sx={{ bgcolor: '#ffb300', width: 56, height: 56, mr: 2 }}><PendingActionsIcon fontSize="large" /></Avatar>
                             <Box>
-                                <Typography color="warning.dark" variant="subtitle2" fontWeight="bold">Очікують Рішення</Typography>
-                                <Typography variant="h4" fontWeight="bold" color="warning.dark">{pendingCount}</Typography>
+                                <Typography color="warning.main" variant="subtitle2" fontWeight="bold">Очікують Рішення</Typography>
+                                <Typography variant="h4" fontWeight="bold" color="warning.main">{pendingCount}</Typography>
                             </Box>
                         </CardContent>
                     </Card>
@@ -367,7 +379,7 @@ export default function AdminDashboard() {
                 <Tabs value={currentTab} onChange={(e, v) => setCurrentTab(v)} variant="scrollable" sx={{ '& .MuiTab-root': { fontWeight: 'bold', fontSize: '1rem' } }}>
                     <Tab label="📝 Заявки на бронювання" />
                     <Tab label="🏨 Мої готелі" />
-                    <Tab label="🔑 Мої кімнати" /> {/* <--- НОВА ВКЛАДКА */}
+                    <Tab label="🔑 Мої кімнати" />
                     <Tab label="➕ Додати готель" />
                     <Tab label="🛏️ Додати кімнату" />
                 </Tabs>
@@ -376,13 +388,18 @@ export default function AdminDashboard() {
             {/* ВКЛАДКА 0: ЗАЯВКИ */}
             {currentTab === 0 && (
                 <Box>
-                    <Paper elevation={0} sx={{ p: 3, mb: 4, bgcolor: '#fafafa', borderRadius: 4, border: '1px solid #e0e0e0' }}>
+                    <Paper elevation={0} sx={{
+                        p: 3, mb: 4,
+                        bgcolor: 'background.paper',
+                        borderRadius: 4,
+                        border: (theme) => theme.palette.mode === 'dark' ? '1px solid #333' : '1px solid #e0e0e0'
+                    }}>
                         <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
                             <FilterAltIcon color="primary" /> Панель фільтрації
                         </Typography>
                         <Grid container spacing={2} alignItems="center">
                             <Grid item xs={12} sm={3}>
-                                <FormControl fullWidth size="small" sx={{ bgcolor: 'white' }}>
+                                <FormControl fullWidth size="small">
                                     <InputLabel>Готель</InputLabel>
                                     <Select value={filterHotel} label="Готель" onChange={(e) => setFilterHotel(e.target.value)}>
                                         <MenuItem value=""><em>Всі готелі</em></MenuItem>
@@ -391,13 +408,33 @@ export default function AdminDashboard() {
                                 </FormControl>
                             </Grid>
                             <Grid item xs={12} sm={2.5}>
-                                <TextField size="small" fullWidth type="date" label="З дати" InputLabelProps={{ shrink: true }} value={filterStartDate} onChange={(e) => setFilterStartDate(e.target.value)} sx={{ bgcolor: 'white' }} />
+                                <TextField
+                                    size="small" fullWidth type="date" label="З дати"
+                                    InputLabelProps={{ shrink: true }}
+                                    value={filterStartDate} onChange={(e) => setFilterStartDate(e.target.value)}
+                                    sx={{
+                                        colorScheme: (theme) => theme.palette.mode,
+                                        '& input[type="date"]::-webkit-calendar-picker-indicator': {
+                                            filter: (theme) => theme.palette.mode === 'dark' ? 'invert(1)' : 'none'
+                                        }
+                                    }}
+                                />
                             </Grid>
                             <Grid item xs={12} sm={2.5}>
-                                <TextField size="small" fullWidth type="date" label="По дату" InputLabelProps={{ shrink: true }} value={filterLastDate} onChange={(e) => setFilterLastDate(e.target.value)} sx={{ bgcolor: 'white' }} />
+                                <TextField
+                                    size="small" fullWidth type="date" label="По дату"
+                                    InputLabelProps={{ shrink: true }}
+                                    value={filterLastDate} onChange={(e) => setFilterLastDate(e.target.value)}
+                                    sx={{
+                                        colorScheme: (theme) => theme.palette.mode,
+                                        '& input[type="date"]::-webkit-calendar-picker-indicator': {
+                                            filter: (theme) => theme.palette.mode === 'dark' ? 'invert(1)' : 'none'
+                                        }
+                                    }}
+                                />
                             </Grid>
                             <Grid item xs={12} sm={4}>
-                                <TextField size="small" fullWidth label="Пошук клієнта (ПІБ)" value={filterClientName} onChange={(e) => setFilterClientName(e.target.value)} sx={{ bgcolor: 'white' }} />
+                                <TextField size="small" fullWidth label="Пошук клієнта (ПІБ)" value={filterClientName} onChange={(e) => setFilterClientName(e.target.value)} />
                             </Grid>
                         </Grid>
                         <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
@@ -406,9 +443,9 @@ export default function AdminDashboard() {
                         </Box>
                     </Paper>
 
-                    <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 4, border: '1px solid #e0e0e0' }}>
+                    <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 4, border: (theme) => theme.palette.mode === 'dark' ? '1px solid #333' : '1px solid #e0e0e0', bgcolor: 'background.paper' }}>
                         <Table sx={{ minWidth: 650 }}>
-                            <TableHead sx={{ bgcolor: '#f8f9fa' }}>
+                            <TableHead sx={{ bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : '#f8f9fa' }}>
                                 <TableRow>
                                     <TableCell><b>ID</b></TableCell>
                                     <TableCell><b>Клієнт</b></TableCell>
@@ -457,9 +494,9 @@ export default function AdminDashboard() {
 
             {/* ВКЛАДКА 1: МОЇ ГОТЕЛІ */}
             {currentTab === 1 && (
-                <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 4, border: '1px solid #e0e0e0' }}>
+                <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 4, border: (theme) => theme.palette.mode === 'dark' ? '1px solid #333' : '1px solid #e0e0e0', bgcolor: 'background.paper' }}>
                     <Table>
-                        <TableHead sx={{ bgcolor: '#f8f9fa' }}>
+                        <TableHead sx={{ bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : '#f8f9fa' }}>
                             <TableRow>
                                 <TableCell><b>Фото</b></TableCell>
                                 <TableCell><b>Назва</b></TableCell>
@@ -488,9 +525,9 @@ export default function AdminDashboard() {
 
             {/* ВКЛАДКА 2: МОЇ КІМНАТИ */}
             {currentTab === 2 && (
-                <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 4, border: '1px solid #e0e0e0' }}>
+                <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 4, border: (theme) => theme.palette.mode === 'dark' ? '1px solid #333' : '1px solid #e0e0e0', bgcolor: 'background.paper' }}>
                     <Table>
-                        <TableHead sx={{ bgcolor: '#f8f9fa' }}>
+                        <TableHead sx={{ bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : '#f8f9fa' }}>
                             <TableRow>
                                 <TableCell><b>Прев'ю</b></TableCell>
                                 <TableCell><b>Готель</b></TableCell>
@@ -510,8 +547,8 @@ export default function AdminDashboard() {
                                     </TableCell>
                                     <TableCell><Typography variant="body1" fontWeight="bold">№ {r.number}</Typography></TableCell>
                                     <TableCell>
-                                        <Chip label={`🛏️ ${r.bed} місця`} size="small" sx={{ mr: 1, bgcolor: '#e3f2fd', color: '#1565c0', fontWeight: 'bold' }} />
-                                        <Chip label={`💰 ${r.price} грн`} size="small" sx={{ bgcolor: '#e8f5e9', color: '#2e7d32', fontWeight: 'bold' }} />
+                                        <Chip label={`🛏️ ${r.bed} місця`} size="small" sx={{ mr: 1, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(21, 101, 192, 0.2)' : '#e3f2fd', color: (theme) => theme.palette.mode === 'dark' ? '#90caf9' : '#1565c0', fontWeight: 'bold' }} />
+                                        <Chip label={`💰 ${r.price} грн`} size="small" sx={{ bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(46, 125, 50, 0.2)' : '#e8f5e9', color: (theme) => theme.palette.mode === 'dark' ? '#a5d6a7' : '#2e7d32', fontWeight: 'bold' }} />
                                     </TableCell>
                                     <TableCell align="center">
                                         <IconButton color="primary" onClick={() => { setEditingRoom({ ...r }); setPendingRoomGalleryFiles([]); setIsEditRoomModalOpen(true); }}><EditIcon /></IconButton>
@@ -529,17 +566,17 @@ export default function AdminDashboard() {
 
             {/* ВКЛАДКА 3: ДОДАТИ ГОТЕЛЬ */}
             {currentTab === 3 && (
-                <Paper elevation={0} sx={{ p: { xs: 3, md: 5 }, maxWidth: 700, mx: 'auto', borderRadius: 4, border: '1px solid #e0e0e0' }}>
+                <Paper elevation={0} sx={{ p: { xs: 3, md: 5 }, maxWidth: 700, mx: 'auto', borderRadius: 4, border: (theme) => theme.palette.mode === 'dark' ? '1px solid #333' : '1px solid #e0e0e0', bgcolor: 'background.paper' }}>
                     <Typography variant="h5" fontWeight="bold" mb={3}>Створення нового готелю</Typography>
                     <Box component="form" onSubmit={handleCreateHostel} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                        <TextField required label="Назва готелю" name="name" value={hostelForm.name} onChange={(e) => setHostelForm(p => ({ ...p, name: e.target.value }))} sx={{ bgcolor: '#fafafa' }} />
-                        <TextField required label="Опис" name="about" multiline rows={4} value={hostelForm.about} onChange={(e) => setHostelForm(p => ({ ...p, about: e.target.value }))} sx={{ bgcolor: '#fafafa' }} />
+                        <TextField required label="Назва готелю" name="name" value={hostelForm.name} onChange={(e) => setHostelForm(p => ({ ...p, name: e.target.value }))} />
+                        <TextField required label="Опис" name="about" multiline rows={4} value={hostelForm.about} onChange={(e) => setHostelForm(p => ({ ...p, about: e.target.value }))} />
                         <Grid container spacing={3}>
-                            <Grid item xs={12} sm={6}><TextField label="Місто" name="city" value={hostelForm.city} onChange={(e) => setHostelForm(p => ({ ...p, city: e.target.value }))} fullWidth sx={{ bgcolor: '#fafafa' }} /></Grid>
-                            <Grid item xs={12} sm={6}><TextField required label="Адреса" name="address" value={hostelForm.address} onChange={(e) => setHostelForm(p => ({ ...p, address: e.target.value }))} fullWidth sx={{ bgcolor: '#fafafa' }} /></Grid>
+                            <Grid item xs={12} sm={6}><TextField label="Місто" name="city" value={hostelForm.city} onChange={(e) => setHostelForm(p => ({ ...p, city: e.target.value }))} fullWidth /></Grid>
+                            <Grid item xs={12} sm={6}><TextField required label="Адреса" name="address" value={hostelForm.address} onChange={(e) => setHostelForm(p => ({ ...p, address: e.target.value }))} fullWidth /></Grid>
                         </Grid>
 
-                        <Box sx={{ border: '2px dashed #ccc', p: 3, borderRadius: 3, textAlign: 'center', bgcolor: '#fafafa' }}>
+                        <Box sx={{ border: (theme) => theme.palette.mode === 'dark' ? '2px dashed #555' : '2px dashed #ccc', p: 3, borderRadius: 3, textAlign: 'center', bgcolor: 'background.default' }}>
                             {hostelForm.main_image && <img src={URL.createObjectURL(hostelForm.main_image)} alt="Preview" style={{ width: '100%', height: 200, objectFit: 'cover', borderRadius: 8, marginBottom: 16 }} />}
                             <Button variant="outlined" component="label" size="large" startIcon={<CloudUploadIcon />}>
                                 {hostelForm.main_image ? "Змінити фото" : "Завантажити головне фото"}
@@ -555,24 +592,24 @@ export default function AdminDashboard() {
 
             {/* ВКЛАДКА 4: ДОДАТИ КІМНАТУ */}
             {currentTab === 4 && (
-                <Paper elevation={0} sx={{ p: { xs: 3, md: 5 }, maxWidth: 700, mx: 'auto', borderRadius: 4, border: '1px solid #e0e0e0' }}>
+                <Paper elevation={0} sx={{ p: { xs: 3, md: 5 }, maxWidth: 700, mx: 'auto', borderRadius: 4, border: (theme) => theme.palette.mode === 'dark' ? '1px solid #333' : '1px solid #e0e0e0', bgcolor: 'background.paper' }}>
                     <Typography variant="h5" fontWeight="bold" mb={3}>Додавання кімнати</Typography>
                     {myHostels.length === 0 ? (
                         <Alert severity="error" sx={{ borderRadius: 2 }}>Спочатку створіть хоча б один готель!</Alert>
                     ) : (
                         <Box component="form" onSubmit={handleCreateRoom} sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                            <FormControl fullWidth required sx={{ bgcolor: '#fafafa' }}>
+                            <FormControl fullWidth required>
                                 <InputLabel>Оберіть готель</InputLabel>
                                 <Select value={roomForm.hostel} label="Оберіть готель" onChange={(e) => setRoomForm(p => ({ ...p, hostel: e.target.value }))}>
                                     {myHostels.map(h => <MenuItem key={h.id} value={h.id}>{h.name}</MenuItem>)}
                                 </Select>
                             </FormControl>
                             <Grid container spacing={3}>
-                                <Grid item xs={12} sm={4}><TextField required label="Номер кімнати" type="number" value={roomForm.number} onChange={(e) => setRoomForm(p => ({ ...p, number: e.target.value }))} fullWidth sx={{ bgcolor: '#fafafa' }} /></Grid>
-                                <Grid item xs={12} sm={4}><TextField required label="Місць" type="number" value={roomForm.bed} onChange={(e) => setRoomForm(p => ({ ...p, bed: e.target.value }))} fullWidth sx={{ bgcolor: '#fafafa' }} /></Grid>
-                                <Grid item xs={12} sm={4}><TextField required label="Ціна (грн)" type="number" value={roomForm.price} onChange={(e) => setRoomForm(p => ({ ...p, price: e.target.value }))} fullWidth sx={{ bgcolor: '#fafafa' }} /></Grid>
+                                <Grid item xs={12} sm={4}><TextField required label="Номер кімнати" type="number" value={roomForm.number} onChange={(e) => setRoomForm(p => ({ ...p, number: e.target.value }))} fullWidth /></Grid>
+                                <Grid item xs={12} sm={4}><TextField required label="Місць" type="number" value={roomForm.bed} onChange={(e) => setRoomForm(p => ({ ...p, bed: e.target.value }))} fullWidth /></Grid>
+                                <Grid item xs={12} sm={4}><TextField required label="Ціна (грн)" type="number" value={roomForm.price} onChange={(e) => setRoomForm(p => ({ ...p, price: e.target.value }))} fullWidth /></Grid>
                             </Grid>
-                            <Box sx={{ border: '2px dashed #ccc', p: 3, borderRadius: 3, textAlign: 'center', bgcolor: '#fafafa' }}>
+                            <Box sx={{ border: (theme) => theme.palette.mode === 'dark' ? '2px dashed #555' : '2px dashed #ccc', p: 3, borderRadius: 3, textAlign: 'center', bgcolor: 'background.default' }}>
                                 {roomForm.preview && <img src={URL.createObjectURL(roomForm.preview)} alt="Room Preview" style={{ width: '100%', height: 200, objectFit: 'cover', borderRadius: 8, marginBottom: 16 }} />}
                                 <Button variant="outlined" component="label" size="large" color="primary" startIcon={<CloudUploadIcon />}>
                                     {roomForm.preview ? "Змінити фото" : "Завантажити фото кімнати"}
@@ -585,8 +622,7 @@ export default function AdminDashboard() {
                 </Paper>
             )}
 
-            {/* Модалки (Редагування готелю та Профіль клієнта) залишаються з мінімальними візуальними правками (Border Radius) */}
-            <Dialog open={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
+            <Dialog open={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 4, bgcolor: 'background.paper' } }}>
                 <DialogTitle fontWeight="bold">Редагувати готель</DialogTitle>
                 <DialogContent dividers>
                     {editingHotel && (
@@ -598,20 +634,20 @@ export default function AdminDashboard() {
                             <FormControlLabel control={<Switch checked={editingHotel.is_active} onChange={(e) => setEditingHotel(p => ({ ...p, is_active: e.target.checked }))} />} label="Активний" />
 
                             {/* ГАЛЕРЕЯ */}
-                            <Box sx={{ mt: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 2, bgcolor: '#fafafa' }}>
+                            <Box sx={{ mt: 2, p: 2, border: (theme) => theme.palette.mode === 'dark' ? '1px solid #444' : '1px solid #e0e0e0', borderRadius: 2, bgcolor: 'background.default' }}>
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                                     <Typography variant="h6" fontWeight="bold">Галерея</Typography>
                                     <Button variant="contained" component="label" size="small" startIcon={<CloudUploadIcon />}>Обрати фото<input type="file" hidden accept="image/*" multiple onChange={handleSelectGalleryFiles} /></Button>
                                 </Box>
                                 {pendingGalleryFiles.length > 0 && (
-                                    <Box sx={{ mb: 2, p: 2, border: '2px dashed #1976d2', borderRadius: 2, bgcolor: '#e3f2fd' }}>
+                                    <Box sx={{ mb: 2, p: 2, border: '2px dashed #1976d2', borderRadius: 2, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(25, 118, 210, 0.1)' : '#e3f2fd' }}>
                                         <Typography variant="caption" color="primary" fontWeight="bold" sx={{ display: 'block', mb: 1.5 }}>До завантаження:</Typography>
                                         <Grid container spacing={2}>
                                             {pendingGalleryFiles.map((file, idx) => (
                                                 <Grid item xs={4} sm={3} key={idx}>
-                                                    <Box sx={{ position: 'relative', width: '100%', aspectRatio: '1 / 1', bgcolor: '#e0e0e0', borderRadius: 1 }}>
+                                                    <Box sx={{ position: 'relative', width: '100%', aspectRatio: '1 / 1', bgcolor: (theme) => theme.palette.mode === 'dark' ? '#333' : '#e0e0e0', borderRadius: 1 }}>
                                                         <img src={URL.createObjectURL(file)} alt="new preview" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px', display: 'block' }} />
-                                                        <IconButton size="small" color="error" sx={{ position: 'absolute', top: -10, right: -10, p: 0.5, bgcolor: 'white', boxShadow: 2 }} onClick={() => setPendingGalleryFiles(p => p.filter((_, i) => i !== idx))}><DeleteIcon fontSize="small" /></IconButton>
+                                                        <IconButton size="small" color="error" sx={{ position: 'absolute', top: -10, right: -10, p: 0.5, bgcolor: 'background.paper', boxShadow: 2 }} onClick={() => setPendingGalleryFiles(p => p.filter((_, i) => i !== idx))}><DeleteIcon fontSize="small" /></IconButton>
                                                     </Box>
                                                 </Grid>
                                             ))}
@@ -623,9 +659,9 @@ export default function AdminDashboard() {
                                 <Grid container spacing={2}>
                                     {editingHotel.gallery_images?.map((img) => (
                                         <Grid item xs={4} sm={3} key={img.id}>
-                                            <Box sx={{ position: 'relative', width: '100%', aspectRatio: '1 / 1', bgcolor: '#e0e0e0', borderRadius: 1 }}>
+                                            <Box sx={{ position: 'relative', width: '100%', aspectRatio: '1 / 1', bgcolor: (theme) => theme.palette.mode === 'dark' ? '#333' : '#e0e0e0', borderRadius: 1 }}>
                                                 <img src={img.image} alt="gallery item" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px', display: 'block' }} />
-                                                <IconButton size="small" color="error" sx={{ position: 'absolute', top: -10, right: -10, p: 0.5, bgcolor: 'white', boxShadow: 2 }} onClick={() => handleDeleteGalleryImage(img.id)}><DeleteIcon fontSize="small" /></IconButton>
+                                                <IconButton size="small" color="error" sx={{ position: 'absolute', top: -10, right: -10, p: 0.5, bgcolor: 'background.paper', boxShadow: 2 }} onClick={() => handleDeleteGalleryImage(img.id)}><DeleteIcon fontSize="small" /></IconButton>
                                             </Box>
                                         </Grid>
                                     ))}
@@ -637,7 +673,7 @@ export default function AdminDashboard() {
                 <DialogActions sx={{ p: 2 }}><Button onClick={() => setIsEditModalOpen(false)} color="inherit">Скасувати</Button><Button onClick={handleSaveEdit} variant="contained" color="primary" disabled={isSubmitting}>Зберегти зміни</Button></DialogActions>
             </Dialog>
 
-            <Dialog open={isClientModalOpen} onClose={() => setIsClientModalOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
+            <Dialog open={isClientModalOpen} onClose={() => setIsClientModalOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 4, bgcolor: 'background.paper' } }}>
                 <DialogTitle sx={{ textAlign: 'center', fontWeight: 'bold' }}>Профіль клієнта</DialogTitle>
                 <DialogContent dividers>
                     {selectedClient ? (
@@ -660,7 +696,7 @@ export default function AdminDashboard() {
             {/* ========================================================= */}
             {/* МОДАЛКА РЕДАГУВАННЯ КІМНАТИ ТА ЇЇ ГАЛЕРЕЇ */}
             {/* ========================================================= */}
-            <Dialog open={isEditRoomModalOpen} onClose={() => setIsEditRoomModalOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
+            <Dialog open={isEditRoomModalOpen} onClose={() => setIsEditRoomModalOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 4, bgcolor: 'background.paper' } }}>
                 <DialogTitle fontWeight="bold">Редагувати кімнату №{editingRoom?.number}</DialogTitle>
                 <DialogContent dividers>
                     {editingRoom && (
@@ -677,7 +713,7 @@ export default function AdminDashboard() {
                                 </Select>
                             </FormControl>
 
-                            <Box sx={{ border: '1px dashed #ccc', p: 2, borderRadius: 2, textAlign: 'center' }}>
+                            <Box sx={{ border: (theme) => theme.palette.mode === 'dark' ? '1px dashed #555' : '1px dashed #ccc', p: 2, borderRadius: 2, textAlign: 'center' }}>
                                 <Box sx={{ mb: 1.5 }}>
                                     <img src={editingRoom.preview instanceof File ? URL.createObjectURL(editingRoom.preview) : editingRoom.preview} alt="Preview" style={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 4 }} />
                                 </Box>
@@ -688,21 +724,21 @@ export default function AdminDashboard() {
                             </Box>
 
                             {/* ГАЛЕРЕЯ КІМНАТИ */}
-                            <Box sx={{ mt: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 2, bgcolor: '#fafafa' }}>
+                            <Box sx={{ mt: 2, p: 2, border: (theme) => theme.palette.mode === 'dark' ? '1px solid #444' : '1px solid #e0e0e0', borderRadius: 2, bgcolor: 'background.default' }}>
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                                     <Typography variant="h6" fontWeight="bold">Галерея кімнати</Typography>
                                     <Button variant="contained" component="label" size="small" startIcon={<CloudUploadIcon />}>Обрати фото<input type="file" hidden accept="image/*" multiple onChange={(e) => { setPendingRoomGalleryFiles(prev => [...prev, ...Array.from(e.target.files)]); e.target.value = null; }} /></Button>
                                 </Box>
 
                                 {pendingRoomGalleryFiles.length > 0 && (
-                                    <Box sx={{ mb: 2, p: 2, border: '2px dashed #1976d2', borderRadius: 2, bgcolor: '#e3f2fd' }}>
+                                    <Box sx={{ mb: 2, p: 2, border: '2px dashed #1976d2', borderRadius: 2, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(25, 118, 210, 0.1)' : '#e3f2fd' }}>
                                         <Typography variant="caption" color="primary" fontWeight="bold" sx={{ display: 'block', mb: 1.5 }}>До завантаження:</Typography>
                                         <Grid container spacing={2}>
                                             {pendingRoomGalleryFiles.map((file, idx) => (
                                                 <Grid item xs={4} sm={3} key={idx}>
-                                                    <Box sx={{ position: 'relative', width: '100%', aspectRatio: '1 / 1', bgcolor: '#e0e0e0', borderRadius: 1 }}>
+                                                    <Box sx={{ position: 'relative', width: '100%', aspectRatio: '1 / 1', bgcolor: (theme) => theme.palette.mode === 'dark' ? '#333' : '#e0e0e0', borderRadius: 1 }}>
                                                         <img src={URL.createObjectURL(file)} alt="new preview" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px', display: 'block' }} />
-                                                        <IconButton size="small" color="error" sx={{ position: 'absolute', top: -10, right: -10, p: 0.5, bgcolor: 'white', boxShadow: 2 }} onClick={() => setPendingRoomGalleryFiles(p => p.filter((_, i) => i !== idx))}><DeleteIcon fontSize="small" /></IconButton>
+                                                        <IconButton size="small" color="error" sx={{ position: 'absolute', top: -10, right: -10, p: 0.5, bgcolor: 'background.paper', boxShadow: 2 }} onClick={() => setPendingRoomGalleryFiles(p => p.filter((_, i) => i !== idx))}><DeleteIcon fontSize="small" /></IconButton>
                                                     </Box>
                                                 </Grid>
                                             ))}
@@ -714,9 +750,9 @@ export default function AdminDashboard() {
                                 <Grid container spacing={2}>
                                     {editingRoom.gallery_images?.map((img) => (
                                         <Grid item xs={4} sm={3} key={img.id}>
-                                            <Box sx={{ position: 'relative', width: '100%', aspectRatio: '1 / 1', bgcolor: '#e0e0e0', borderRadius: 1 }}>
+                                            <Box sx={{ position: 'relative', width: '100%', aspectRatio: '1 / 1', bgcolor: (theme) => theme.palette.mode === 'dark' ? '#333' : '#e0e0e0', borderRadius: 1 }}>
                                                 <img src={img.image} alt="gallery item" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px', display: 'block' }} />
-                                                <IconButton size="small" color="error" sx={{ position: 'absolute', top: -10, right: -10, p: 0.5, bgcolor: 'white', boxShadow: 2 }} onClick={() => handleDeleteRoomGalleryImage(img.id)}><DeleteIcon fontSize="small" /></IconButton>
+                                                <IconButton size="small" color="error" sx={{ position: 'absolute', top: -10, right: -10, p: 0.5, bgcolor: 'background.paper', boxShadow: 2 }} onClick={() => handleDeleteRoomGalleryImage(img.id)}><DeleteIcon fontSize="small" /></IconButton>
                                             </Box>
                                         </Grid>
                                     ))}

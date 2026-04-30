@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
     Box, Typography, Container, Card, CardMedia, TextField,
     CardContent, Button, CircularProgress, Divider, Chip, Grid, Paper, InputAdornment,
-    Snackbar, Alert // Додані імпорти для спливаючих повідомлень
+    Snackbar, Alert
 } from '@mui/material';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
@@ -28,9 +28,6 @@ export default function BookNow() {
 
     const userRole = localStorage.getItem('role');
 
-    // ==========================================
-    // СТЕЙТ ДЛЯ СНАКБАРІВ
-    // ==========================================
     const [snackbar, setSnackbar] = useState({
         open: false,
         message: '',
@@ -52,9 +49,6 @@ export default function BookNow() {
         return `http://localhost:8000${imagePath}`;
     };
 
-    // ==========================================
-    // ЗАВАНТАЖЕННЯ ГОТЕЛЮ
-    // ==========================================
     useEffect(() => {
         api.get(`hostels/${id}/`)
             .then(response => {
@@ -67,9 +61,6 @@ export default function BookNow() {
             });
     }, [id]);
 
-    // ==========================================
-    // ПОШУК ВІЛЬНИХ КІМНАТ
-    // ==========================================
     useEffect(() => {
         const fetchAvailableRooms = async () => {
             if (startDate && lastDate) {
@@ -102,9 +93,6 @@ export default function BookNow() {
         fetchAvailableRooms();
     }, [startDate, lastDate, id]);
 
-    // ==========================================
-    // БРОНЮВАННЯ КІМНАТИ
-    // ==========================================
     const handleBookRoom = async (roomId) => {
         if (userRole === 'admin') {
             showMessage("Адміністратори не можуть створювати бронювання з клієнтського сайту.", "error");
@@ -128,7 +116,6 @@ export default function BookNow() {
 
             showMessage("🎉 Кімната успішно забронювана!", "success");
 
-            // Даємо користувачу прочитати повідомлення перед тим, як перекинути в профіль
             setTimeout(() => {
                 navigate('/profile');
             }, 1500);
@@ -136,7 +123,7 @@ export default function BookNow() {
         } catch (error) {
             console.error("Помилка бронювання:", error.response?.data);
             showMessage("❌ Помилка бронювання! Можливо, хтось встиг забронювати її раніше.", "error");
-            setBookingRoomId(null); // Знімаємо лоадер тільки якщо сталася помилка
+            setBookingRoomId(null);
         }
     };
 
@@ -188,18 +175,30 @@ export default function BookNow() {
                     <Grid item xs={12} md={8}>
 
                         {userRole === 'admin' ? (
-                            <Paper sx={{ p: 4, bgcolor: '#fff3e0', border: '1px solid #ffe0b2', borderRadius: 4, textAlign: 'center' }}>
-                                <Typography variant="h6" color="warning.dark" fontWeight="bold" gutterBottom>
+                            <Paper sx={{
+                                p: 4,
+                                bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255, 152, 0, 0.1)' : '#fff3e0',
+                                border: (theme) => theme.palette.mode === 'dark' ? '1px solid #ff9800' : '1px solid #ffe0b2',
+                                borderRadius: 4,
+                                textAlign: 'center'
+                            }}>
+                                <Typography variant="h6" color="warning.main" fontWeight="bold" gutterBottom>
                                     👑 Режим Адміністратора
                                 </Typography>
-                                <Typography variant="body1" color="warning.dark">
+                                <Typography variant="body1" color="warning.main">
                                     Ви переглядаєте цю сторінку як Адміністратор. Функція бронювання прихована для вашого акаунта.
                                 </Typography>
                             </Paper>
                         ) : (
                             <Box>
                                 {/* КРОК 1: ДАТИ ТА ПОБАЖАННЯ */}
-                                <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: '1px solid #e0e0e0', mb: 5, bgcolor: '#fafafa' }}>
+                                <Paper elevation={0} sx={{
+                                    p: 4,
+                                    borderRadius: 4,
+                                    border: (theme) => theme.palette.mode === 'dark' ? '1px solid #333' : '1px solid #e0e0e0',
+                                    mb: 5,
+                                    bgcolor: 'background.paper'
+                                }}>
                                     <Typography variant="h6" fontWeight="bold" mb={3} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                         <CheckCircleOutlineIcon color="primary" /> Крок 1: Ваші дати та побажання
                                     </Typography>
@@ -211,7 +210,14 @@ export default function BookNow() {
                                                 value={startDate} onChange={(e) => setStartDate(e.target.value)}
                                                 inputProps={{ min: new Date().toISOString().split('T')[0] }}
                                                 InputProps={{ startAdornment: <InputAdornment position="start"><CalendarMonthIcon color="disabled"/></InputAdornment> }}
-                                                sx={{ bgcolor: 'white' }}
+                                                sx={{
+                                                    // Додаємо color-scheme, щоб браузер малював темний календар
+                                                    colorScheme: (theme) => theme.palette.mode,
+                                                    // Інвертуємо іконку календаря в самому полі (щоб її було видно на темному фоні)
+                                                    '& input[type="date"]::-webkit-calendar-picker-indicator': {
+                                                        filter: (theme) => theme.palette.mode === 'dark' ? 'invert(1)' : 'none'
+                                                    }
+                                                }}
                                             />
                                         </Grid>
                                         <Grid item xs={12} sm={6}>
@@ -220,7 +226,12 @@ export default function BookNow() {
                                                 value={lastDate} onChange={(e) => setLastDate(e.target.value)}
                                                 inputProps={{ min: startDate || new Date().toISOString().split('T')[0] }}
                                                 InputProps={{ startAdornment: <InputAdornment position="start"><CalendarMonthIcon color="disabled"/></InputAdornment> }}
-                                                sx={{ bgcolor: 'white' }}
+                                                sx={{
+                                                    colorScheme: (theme) => theme.palette.mode,
+                                                    '& input[type="date"]::-webkit-calendar-picker-indicator': {
+                                                        filter: (theme) => theme.palette.mode === 'dark' ? 'invert(1)' : 'none'
+                                                    }
+                                                }}
                                             />
                                         </Grid>
                                     </Grid>
@@ -229,7 +240,6 @@ export default function BookNow() {
                                         fullWidth multiline rows={2} label="Особливі побажання (необов'язково)"
                                         placeholder="Потрібне тихе місце, пізній заїзд тощо..."
                                         value={requestText} onChange={(e) => setRequestText(e.target.value)}
-                                        sx={{ bgcolor: 'white' }}
                                     />
                                 </Paper>
 
@@ -239,7 +249,13 @@ export default function BookNow() {
                                 </Typography>
 
                                 {!startDate || !lastDate ? (
-                                    <Paper elevation={0} sx={{ p: 5, border: '2px dashed #ccc', borderRadius: 4, textAlign: 'center', bgcolor: 'transparent' }}>
+                                    <Paper elevation={0} sx={{
+                                        p: 5,
+                                        border: (theme) => theme.palette.mode === 'dark' ? '2px dashed #555' : '2px dashed #ccc',
+                                        borderRadius: 4,
+                                        textAlign: 'center',
+                                        bgcolor: 'transparent'
+                                    }}>
                                         <Typography variant="body1" color="text.secondary">
                                             📅 Будь ласка, оберіть дати заїзду та виїзду вище, щоб побачити доступні номери.
                                         </Typography>
@@ -255,8 +271,13 @@ export default function BookNow() {
                                                 <Card
                                                     sx={{
                                                         height: '100%', display: 'flex', flexDirection: 'column', borderRadius: 4,
+                                                        border: (theme) => theme.palette.mode === 'dark' ? '1px solid #333' : 'none',
+                                                        bgcolor: 'background.paper',
                                                         transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-                                                        '&:hover': { transform: 'translateY(-5px)', boxShadow: '0px 10px 30px rgba(0,0,0,0.1)' }
+                                                        '&:hover': {
+                                                            transform: 'translateY(-5px)',
+                                                            boxShadow: (theme) => theme.palette.mode === 'dark' ? '0px 10px 30px rgba(0,0,0,0.5)' : '0px 10px 30px rgba(0,0,0,0.1)'
+                                                        }
                                                     }}
                                                 >
                                                     <Box sx={{ overflow: 'hidden' }}>
@@ -269,8 +290,22 @@ export default function BookNow() {
                                                         <Typography variant="h6" fontWeight="bold" gutterBottom>Кімната №{room.number}</Typography>
 
                                                         <Box sx={{ mt: 1, mb: 3, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                                                            <Chip label={`🛏️ ${room.bed} місця`} sx={{ bgcolor: '#e3f2fd', color: '#1565c0', fontWeight: 'bold' }} />
-                                                            <Chip label={`💰 ${room.price} грн/ніч`} sx={{ bgcolor: '#e8f5e9', color: '#2e7d32', fontWeight: 'bold' }} />
+                                                            <Chip
+                                                                label={`🛏️ ${room.bed} місця`}
+                                                                sx={{
+                                                                    bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(21, 101, 192, 0.2)' : '#e3f2fd',
+                                                                    color: (theme) => theme.palette.mode === 'dark' ? '#90caf9' : '#1565c0',
+                                                                    fontWeight: 'bold'
+                                                                }}
+                                                            />
+                                                            <Chip
+                                                                label={`💰 ${room.price} грн/ніч`}
+                                                                sx={{
+                                                                    bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(46, 125, 50, 0.2)' : '#e8f5e9',
+                                                                    color: (theme) => theme.palette.mode === 'dark' ? '#a5d6a7' : '#2e7d32',
+                                                                    fontWeight: 'bold'
+                                                                }}
+                                                            />
                                                         </Box>
 
                                                         <Button
@@ -290,7 +325,13 @@ export default function BookNow() {
                                         ))}
                                     </Grid>
                                 ) : (
-                                    <Paper elevation={0} sx={{ p: 5, border: '1px solid #ffcdd2', borderRadius: 4, textAlign: 'center', bgcolor: '#ffebee' }}>
+                                    <Paper elevation={0} sx={{
+                                        p: 5,
+                                        border: (theme) => theme.palette.mode === 'dark' ? '1px solid #d32f2f' : '1px solid #ffcdd2',
+                                        borderRadius: 4,
+                                        textAlign: 'center',
+                                        bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(211, 47, 47, 0.1)' : '#ffebee'
+                                    }}>
                                         <Typography variant="body1" color="error" fontWeight="bold">
                                             На жаль, на обрані дати ({startDate} — {lastDate}) немає вільних кімнат. Спробуйте змінити дати.
                                         </Typography>
@@ -302,7 +343,6 @@ export default function BookNow() {
                 </Grid>
             </Container>
 
-            {/* КОМПОНЕНТ СНАКБАРУ */}
             <Snackbar
                 open={snackbar.open}
                 autoHideDuration={4000}
