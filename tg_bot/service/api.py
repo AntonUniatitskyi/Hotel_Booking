@@ -1,8 +1,8 @@
 import os
 import aiohttp
 from typing import Dict, Optional
+from config import API_BASE_URL
 
-API_BASE_URL = os.getenv('API_BASE_URL', default="http://127.0.0.1:8000/api")
 user_session: Dict[int, Dict[str, str]] = {}
 
 
@@ -34,8 +34,9 @@ class DjangoApiClient:
                 f"{API_BASE_URL}/login/",
                 json={"username": username, "password": password}
             ) as resp:
+                data = await resp.json()
                 if resp.status == 200:
-                    data = await resp.json()
+                    # data = await resp.json()
                     user_session[self.tg_user_id] = data
                     self.session_data = data
                     return data
