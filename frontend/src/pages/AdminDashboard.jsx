@@ -137,29 +137,27 @@ export default function AdminDashboard() {
         e.target.value = null;
     };
 
-    const handleConfirmUploadGallery = async () => {
-        if (pendingGalleryFiles.length === 0) return;
-        setUploadingImage(true);
+    const handleConfirmUploadRoomGallery = async () => {
+        if (pendingRoomGalleryFiles.length === 0) return;
+        setUploadingRoomImage(true);
         const formData = new FormData();
-        pendingGalleryFiles.forEach(file => formData.append('images', file));
+        pendingRoomGalleryFiles.forEach(file => formData.append('images', file));
 
         try {
-            const response = await api.post(`hostels/${editingHotel.id}/upload_image/`, formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
-            const updatedHotel = { ...editingHotel, gallery_images: [...(editingHotel.gallery_images || []), ...response.data] };
-            setEditingHotel(updatedHotel);
-            setMyHostels(prev => prev.map(h => h.id === editingHotel.id ? updatedHotel : h));
-            setPendingGalleryFiles([]);
-            showNotify("Фото успішно додані", "success");
+            const response = await api.post(`rooms/${editingRoom.id}/upload_image/`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+            // ЗМІНА: замінили gallery_images на images
+            const updatedRoom = { ...editingRoom, images: [...(editingRoom.images || []), ...response.data] };
+            setEditingRoom(updatedRoom);
+            setMyRooms(prev => prev.map(r => r.id === editingRoom.id ? updatedRoom : r));
+            setPendingRoomGalleryFiles([]);
+            showNotify("Фото кімнати успішно додані", "success");
         } catch (error) {
             console.error(error);
-            showNotify("Помилка завантаження фото", "error");
+            showNotify("Помилка завантаження фото кімнати", "error");
         } finally {
-            setUploadingImage(false);
+            setUploadingRoomImage(false);
         }
     };
-
     const handleDeleteGalleryImage = async (imageId) => {
         if (!window.confirm("Видалити це фото назавжди?")) return;
         try {
@@ -282,32 +280,12 @@ export default function AdminDashboard() {
         }
     };
 
-    const handleConfirmUploadRoomGallery = async () => {
-        if (pendingRoomGalleryFiles.length === 0) return;
-        setUploadingRoomImage(true);
-        const formData = new FormData();
-        pendingRoomGalleryFiles.forEach(file => formData.append('images', file));
-
-        try {
-            const response = await api.post(`rooms/${editingRoom.id}/upload_image/`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-            const updatedRoom = { ...editingRoom, gallery_images: [...(editingRoom.gallery_images || []), ...response.data] };
-            setEditingRoom(updatedRoom);
-            setMyRooms(prev => prev.map(r => r.id === editingRoom.id ? updatedRoom : r));
-            setPendingRoomGalleryFiles([]);
-            showNotify("Фото кімнати успішно додані", "success");
-        } catch (error) {
-            console.error(error);
-            showNotify("Помилка завантаження фото кімнати", "error");
-        } finally {
-            setUploadingRoomImage(false);
-        }
-    };
 
     const handleDeleteRoomGalleryImage = async (imageId) => {
         if (!window.confirm("Видалити це фото кімнати назавжди?")) return;
         try {
             await api.delete(`rooms/${editingRoom.id}/delete_image/${imageId}/`);
-            const updatedRoom = { ...editingRoom, gallery_images: editingRoom.gallery_images.filter(img => img.id !== imageId) };
+            const updatedRoom = { ...editingRoom, images: editingRoom.images.filter(img => img.id !== imageId) };
             setEditingRoom(updatedRoom);
             setMyRooms(prev => prev.map(r => r.id === editingRoom.id ? updatedRoom : r));
             showNotify("Фото видалено", "info");
@@ -748,7 +726,7 @@ export default function AdminDashboard() {
                                 )}
                                 <Divider sx={{ mb: 2 }} />
                                 <Grid container spacing={2}>
-                                    {editingRoom.gallery_images?.map((img) => (
+                                    {editingRoom.images?.map((img) => (
                                         <Grid item xs={4} sm={3} key={img.id}>
                                             <Box sx={{ position: 'relative', width: '100%', aspectRatio: '1 / 1', bgcolor: (theme) => theme.palette.mode === 'dark' ? '#333' : '#e0e0e0', borderRadius: 1 }}>
                                                 <img src={img.image} alt="gallery item" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px', display: 'block' }} />

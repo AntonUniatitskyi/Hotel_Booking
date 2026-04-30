@@ -267,6 +267,7 @@ export default function BookNow() {
                                 ) : availableRooms.length > 0 ? (
                                     <Grid container spacing={3}>
                                         {availableRooms.map((room) => (
+
                                             <Grid item xs={12} sm={6} key={room.id}>
                                                 <Card
                                                     sx={{
@@ -280,14 +281,61 @@ export default function BookNow() {
                                                         }
                                                     }}
                                                 >
+
                                                     <Box sx={{ overflow: 'hidden' }}>
                                                         <CardMedia
                                                             component="img" height="220" image={getImageUrl(room.preview)} alt={`Кімната ${room.number}`}
                                                             sx={{ transition: 'transform 0.6s', '&:hover': { transform: 'scale(1.05)' } }}
                                                         />
                                                     </Box>
+                                                    {/* ========================================== */}
+                                                    {/* МІНІ-ГАЛЕРЕЯ КІМНАТИ                       */}
+                                                    {/* ========================================== */}
+                                                    {room.images && room.images.length > 0 && (
+                                                        <Box
+                                                            sx={{
+                                                                display: 'flex',
+                                                                gap: 1.5, // Збільшили відступ між фотографіями
+                                                                p: 1.5,   // Збільшили внутрішній відступ
+                                                                overflowX: 'auto',
+                                                                bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(0,0,0,0.2)' : '#f8f9fa',
+                                                                borderBottom: (theme) => theme.palette.mode === 'dark' ? '1px solid #333' : '1px solid #eaeaea',
+                                                                '&::-webkit-scrollbar': { height: 6 },
+                                                                '&::-webkit-scrollbar-thumb': {
+                                                                    bgcolor: (theme) => theme.palette.mode === 'dark' ? '#555' : '#ccc',
+                                                                    borderRadius: 4
+                                                                }
+                                                            }}
+                                                        >
+                                                            {room.images.map((img) => (
+                                                                <Box
+                                                                    key={img.id}
+                                                                    sx={{
+                                                                        minWidth: 100, // БУЛО 70
+                                                                        width: 100,    // БУЛО 70
+                                                                        height: 75,    // БУЛО 50
+                                                                        borderRadius: 2,
+                                                                        overflow: 'hidden',
+                                                                        flexShrink: 0,
+                                                                        border: (theme) => theme.palette.mode === 'dark' ? '1px solid #444' : '1px solid #ddd',
+                                                                        cursor: 'pointer',
+                                                                        transition: 'transform 0.2s ease',
+                                                                        '&:hover': { transform: 'scale(1.05)', zIndex: 1 } // Ефект зуму при наведенні
+                                                                    }}
+                                                                >
+                                                                    <img
+                                                                        src={getImageUrl(img.image)}
+                                                                        alt="Деталі кімнати"
+                                                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                                    />
+                                                                </Box>
+                                                            ))}
+                                                        </Box>
+                                                    )}
+                                                    {/* ========================================== */}
                                                     <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', p: 3 }}>
                                                         <Typography variant="h6" fontWeight="bold" gutterBottom>Кімната №{room.number}</Typography>
+
 
                                                         <Box sx={{ mt: 1, mb: 3, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                                                             <Chip
