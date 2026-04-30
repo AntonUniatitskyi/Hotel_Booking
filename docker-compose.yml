@@ -58,6 +58,21 @@ services:
     depends_on:
       - backend
 
+  tg_bot:
+    build: ./backend
+    container_name: hotel_tg_bot
+    working_dir: /bot
+    volumes:
+      - ./tg_bot:/bot
+    command: python bot.py
+    env_file:
+      - .env
+    environment:
+      - API_BASE_URL=http://backend:8000/api
+    depends_on:
+      - backend
+
+
 volumes:
   db-data:
   media_volume:

@@ -1,3 +1,6 @@
+__author__ = "Anton Uniatitskyi"
+__version__ = "1.0.0"
+
 from rest_framework import serializers
 
 from .models import Hostel, HostelImage, Room, Client, Booking, RoomImage, Notification, Reviews

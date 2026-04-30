@@ -15,6 +15,9 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 
+__author__ = "Anton Uniatitskyi"
+__version__ = "1.0.0"
+
 from django.contrib import admin
 from django.urls import path, include
 from django.conf.urls.static import static

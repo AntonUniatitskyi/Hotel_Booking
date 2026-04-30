@@ -9,6 +9,8 @@ https://docs.djangoproject.com/en/5.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
+__author__ = "Anton Uniatitskyi"
+__version__ = "1.0.0"
 
 from pathlib import Path
 import os

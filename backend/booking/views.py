@@ -1,3 +1,6 @@
+__author__ = "Anton Uniatitskyi"
+__version__ = "1.0.0"
+
 from datetime import datetime, timedelta
 
 from django.db.migrations import serializer
