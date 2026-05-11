@@ -8,20 +8,18 @@ import HotelIcon from '@mui/icons-material/Hotel';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import LogoutIcon from '@mui/icons-material/Logout';
-import Brightness4Icon from '@mui/icons-material/Brightness4'; // Місяць
-import Brightness7Icon from '@mui/icons-material/Brightness7'; // Сонце
+import Brightness4Icon from '@mui/icons-material/Brightness4';
+import Brightness7Icon from '@mui/icons-material/Brightness7';
 
 export default function Navbar({ toggleTheme, mode }) {
     const location = useLocation();
 
-    // Стейти для випадаючого меню
     const [anchorEl, setAnchorEl] = useState(null);
     const open = Boolean(anchorEl);
 
     const token = localStorage.getItem('token');
     const role = localStorage.getItem('role');
 
-    // Відкриття/закриття меню
     const handleMenuOpen = (event) => setAnchorEl(event.currentTarget);
     const handleMenuClose = () => setAnchorEl(null);
 
@@ -38,9 +36,8 @@ export default function Navbar({ toggleTheme, mode }) {
             position="sticky"
             elevation={0}
             sx={{
-                // Змінюємо колір шапки залежно від теми
                 bgcolor: mode === 'light' ? 'rgba(255, 255, 255, 0.85)' : 'rgba(18, 18, 18, 0.85)',
-                backdropFilter: 'blur(16px)', // Ефект матового скла
+                backdropFilter: 'blur(16px)',
                 borderBottom: mode === 'light' ? '1px solid rgba(0,0,0,0.05)' : '1px solid rgba(255,255,255,0.05)',
                 color: 'text.primary',
                 zIndex: 1100
@@ -49,7 +46,6 @@ export default function Navbar({ toggleTheme, mode }) {
             <Container maxWidth="xl">
                 <Toolbar disableGutters sx={{ display: 'flex', justifyContent: 'space-between' }}>
 
-                    {/* ЛОГОТИП */}
                     <Typography
                         variant="h5"
                         component={Link}
@@ -70,10 +66,8 @@ export default function Navbar({ toggleTheme, mode }) {
                         </Box>
                     </Typography>
 
-                    {/* ПРАВА ЧАСТИНА (Навігація) */}
                     <Box sx={{ display: 'flex', gap: { xs: 1, sm: 2 }, alignItems: 'center' }}>
 
-                        {/* 🌓 КНОПКА ЗМІНИ ТЕМИ */}
                         <Tooltip title={mode === 'light' ? "Увімкнути темну тему" : "Увімкнути світлу тему"}>
                             <IconButton onClick={toggleTheme} color="inherit" size="small" sx={{ p: 1 }}>
                                 {mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
@@ -82,7 +76,6 @@ export default function Navbar({ toggleTheme, mode }) {
 
                         {token ? (
                             <>
-                                {/* 👑 КНОПКА АДМІНА (Видна тільки на ПК) */}
                                 {role === 'admin' && (
                                     <Button
                                         component={Link}
@@ -96,7 +89,6 @@ export default function Navbar({ toggleTheme, mode }) {
                                     </Button>
                                 )}
 
-                                {/* АВАТАРКА КОРИСТУВАЧА */}
                                 <Tooltip title="Мій акаунт">
                                     <IconButton
                                         onClick={handleMenuOpen}
@@ -114,7 +106,6 @@ export default function Navbar({ toggleTheme, mode }) {
                                     </IconButton>
                                 </Tooltip>
 
-                                {/* ВИПАДАЮЧЕ МЕНЮ */}
                                 <Menu
                                     anchorEl={anchorEl}
                                     open={open}

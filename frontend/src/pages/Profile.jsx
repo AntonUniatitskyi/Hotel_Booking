@@ -26,24 +26,19 @@ export default function UserProfile() {
     const [bookings, setBookings] = useState([]);
     const [messages, setMessages] = useState([]);
 
-    // Стейти для Snackbar
     const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
-    // Стейти для видалення акаунта
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [deletePassword, setDeletePassword] = useState('');
     const [showDeletePassword, setShowDeletePassword] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
 
-    // Стейти для деталей бронювання
     const [selectedBooking, setSelectedBooking] = useState(null);
     const [isBookingDetailsModalOpen, setIsBookingDetailsModalOpen] = useState(false);
 
-    // Стейти для скасування бронювання
     const [bookingToCancel, setBookingToCancel] = useState(null);
     const [isCancelConfirmModalOpen, setIsCancelConfirmModalOpen] = useState(false);
 
-    // Редагування профілю
     const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
     const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
     const [profileForm, setProfileForm] = useState({ first_name: '', last_name: '', age: '' });
@@ -82,9 +77,6 @@ export default function UserProfile() {
         return <Chip label="Очікує" color="warning" size="small" sx={{ fontWeight: 'bold' }} />;
     };
 
-    // ==========================================
-    // ЛОГІКА: СПОВІЩЕННЯ
-    // ==========================================
     const handleMarkAsRead = async (id) => {
         try {
             await api.post(`notofications/${id}/read/`, { is_read: true });
@@ -107,9 +99,7 @@ export default function UserProfile() {
         }
     };
 
-    // ==========================================
-    // ЛОГІКА: ПРОФІЛЬ
-    // ==========================================
+
     const handleOpenEditProfile = () => {
         setProfileForm({
             first_name: userInfo?.first_name || '',
@@ -164,9 +154,7 @@ export default function UserProfile() {
         setIsCancelConfirmModalOpen(true);
     };
 
-    // ==========================================
-    // ЛОГІКА: СКАСУВАННЯ БРОНЮВАННЯ
-    // ==========================================
+
     const confirmCancelBooking = async () => {
         if (!bookingToCancel) return;
         try {
@@ -222,7 +210,6 @@ export default function UserProfile() {
 
     return (
         <Container maxWidth="md" sx={{ mt: 5, mb: 10 }}>
-            {/* ШАПКА */}
             <Paper elevation={0} sx={{ p: 4, display: 'flex', alignItems: 'center', gap: 3, mb: 4, borderRadius: 4, border: (theme) => theme.palette.mode === 'dark' ? '1px solid #333' : '1px solid #e0e0e0' }}>
                 <Avatar sx={{ width: 80, height: 80, bgcolor: 'primary.main', fontSize: 36, fontWeight: 'bold' }}>
                     {userInfo?.first_name?.charAt(0) || '👤'}
@@ -245,7 +232,6 @@ export default function UserProfile() {
                 </Tabs>
             </Box>
 
-            {/* ВКЛАДКА 0: ДАНІ */}
             {currentTab === 0 && (
                 <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: (theme) => theme.palette.mode === 'dark' ? '1px solid #333' : '1px solid #e0e0e0' }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
@@ -265,7 +251,6 @@ export default function UserProfile() {
                     <Divider sx={{ my: 4 }} />
                     <Box sx={{
                         p: 2,
-                        // Динамічний фон небезпечної зони
                         bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(211, 47, 47, 0.1)' : '#fff5f5',
                         borderRadius: 3
                     }}>
@@ -275,7 +260,6 @@ export default function UserProfile() {
                 </Paper>
             )}
 
-            {/* ВКЛАДКА 1: БРОНЮВАННЯ */}
             {currentTab === 1 && (
                 <Grid container spacing={3}>
                     {bookings.length === 0 ? (
@@ -349,7 +333,6 @@ export default function UserProfile() {
                 </Grid>
             )}
 
-            {/* ВКЛАДКА 2: СПОВІЩЕННЯ */}
             {currentTab === 2 && (
                 <Box>
                     <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
@@ -392,7 +375,6 @@ export default function UserProfile() {
                 </Box>
             )}
 
-            {/* МОДАЛКА ДЕТАЛЕЙ БРОНЮВАННЯ */}
             <Dialog open={isBookingDetailsModalOpen} onClose={() => setIsBookingDetailsModalOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
                 <DialogTitle sx={{ fontWeight: 'bold' }}>Деталі бронювання</DialogTitle>
                 <DialogContent dividers>
@@ -431,9 +413,7 @@ export default function UserProfile() {
                 </DialogActions>
             </Dialog>
 
-            {/* ІНШІ МОДАЛКИ ЗАЛИШЕНО БЕЗ ЗМІН, ВОНИ ВЖЕ СУМІСНІ */}
 
-            {/* МОДАЛКА СКАСУВАННЯ */}
             <Dialog open={isCancelConfirmModalOpen} onClose={() => setIsCancelConfirmModalOpen(false)} PaperProps={{ sx: { borderRadius: 4 } }}>
                 <DialogTitle>Скасувати бронювання?</DialogTitle>
                 <DialogContent><DialogContentText>Це рішення неможливо буде змінити.</DialogContentText></DialogContent>
@@ -443,7 +423,6 @@ export default function UserProfile() {
                 </DialogActions>
             </Dialog>
 
-            {/* МОДАЛКА РЕДАГУВАННЯ ПРОФІЛЮ */}
             <Dialog open={isEditProfileModalOpen} onClose={() => setIsEditProfileModalOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
                 <DialogTitle sx={{ fontWeight: 'bold' }}>Редагувати профіль</DialogTitle>
                 <DialogContent dividers>
@@ -462,7 +441,6 @@ export default function UserProfile() {
                 </DialogActions>
             </Dialog>
 
-            {/* МОДАЛКА ВИДАЛЕННЯ АКАУНТА */}
             <Dialog open={isDeleteDialogOpen} onClose={() => setIsDeleteDialogOpen(false)} PaperProps={{ sx: { borderRadius: 4 } }}>
                 <DialogTitle sx={{ color: 'error.main', fontWeight: 'bold' }}>⚠️ Видалення акаунта</DialogTitle>
                 <DialogContent>
@@ -493,7 +471,6 @@ export default function UserProfile() {
                 </DialogActions>
             </Dialog>
 
-            {/* SNACKBAR */}
             <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={handleCloseSnackbar} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
                 <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%', borderRadius: 3 }}>
                     {snackbar.message}

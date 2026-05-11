@@ -4,7 +4,6 @@ const ProtectedRoute = ({ children }) => {
     const userRole = localStorage.getItem('role');
     const token = localStorage.getItem('token');
 
-    // Цей лог покаже нам у консолі (F12), що реально лежить у пам'яті
     console.log("ПЕРЕВІРКА ДОСТУПУ:", { token: !!token, role: userRole });
 
     if (!token) {

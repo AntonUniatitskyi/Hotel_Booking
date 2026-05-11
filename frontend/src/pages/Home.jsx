@@ -33,9 +33,6 @@ export default function Home() {
 
     return (
         <Box>
-            {/* ========================================== */}
-            {/* 1. HERO SECTION З АТМОСФЕРНИМ ФОТО         */}
-            {/* ========================================== */}
             <Box
                 sx={{
                     position: 'relative',
@@ -50,7 +47,7 @@ export default function Home() {
                     justifyContent: 'center',
                     color: 'white',
                     textAlign: 'center',
-                    mt: -4, // Підтягуємо під прозорий Navbar
+                    mt: -4,
                     px: 2
                 }}
             >
@@ -62,13 +59,10 @@ export default function Home() {
                 </Typography>
             </Box>
 
-            {/* ========================================== */}
-            {/* ПЛАВАЮЧА ПАНЕЛЬ ПОШУКУ З GLASSMORPHISM      */}
-            {/* ========================================== */}
+
             <Container maxWidth="md" sx={{ position: 'relative', mt: { xs: -4, md: -7 }, mb: 10, zIndex: 2 }}>
                 <Box sx={{
-                    p: 1, // Ідеально рівномірний відступ скла з усіх боків
-                    // Робимо скло розумним: світле для світлої теми, затемнене для темної
+                    p: 1,
                     bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(0, 0, 0, 0.4)' : 'rgba(255, 255, 255, 0.3)',
                     backdropFilter: 'blur(20px)',
                     borderRadius: '60px',
@@ -84,7 +78,6 @@ export default function Home() {
                             gap: 2,
                             p: 1,
                             pl: 3,
-                            // ВИДАЛЕНО зайві mt: 4 та mx: 'auto', які ламали симетрію!
                             borderRadius: '50px',
                             bgcolor: 'background.paper',
                             boxShadow: (theme) => theme.palette.mode === 'light'

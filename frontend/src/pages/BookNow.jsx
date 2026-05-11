@@ -132,7 +132,6 @@ export default function BookNow() {
 
     return (
         <Box sx={{ pb: 10 }}>
-            {/* HERO SECTION ГОТЕЛЮ */}
             <Box
                 sx={{
                     position: 'relative',
@@ -162,7 +161,6 @@ export default function BookNow() {
             <Container maxWidth="lg" sx={{ mt: 5 }}>
                 <Grid container spacing={5}>
 
-                    {/* ЛІВА КОЛОНКА: Опис */}
                     <Grid item xs={12} md={4}>
                         <Typography variant="h5" fontWeight="bold" gutterBottom>Про готель</Typography>
                         <Divider sx={{ mb: 3, width: '50px', borderWidth: 2, borderColor: 'primary.main', borderRadius: 2 }} />
@@ -171,7 +169,6 @@ export default function BookNow() {
                         </Typography>
                     </Grid>
 
-                    {/* ПРАВА КОЛОНКА: Бронювання */}
                     <Grid item xs={12} md={8}>
 
                         {userRole === 'admin' ? (
@@ -191,7 +188,6 @@ export default function BookNow() {
                             </Paper>
                         ) : (
                             <Box>
-                                {/* КРОК 1: ДАТИ ТА ПОБАЖАННЯ */}
                                 <Paper elevation={0} sx={{
                                     p: 4,
                                     borderRadius: 4,
@@ -243,7 +239,6 @@ export default function BookNow() {
                                     />
                                 </Paper>
 
-                                {/* КРОК 2: ВИБІР КІМНАТИ */}
                                 <Typography variant="h6" fontWeight="bold" mb={3} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                     <HotelIcon color="primary" /> Крок 2: Оберіть номер
                                 </Typography>
@@ -288,15 +283,13 @@ export default function BookNow() {
                                                             sx={{ transition: 'transform 0.6s', '&:hover': { transform: 'scale(1.05)' } }}
                                                         />
                                                     </Box>
-                                                    {/* ========================================== */}
-                                                    {/* МІНІ-ГАЛЕРЕЯ КІМНАТИ                       */}
-                                                    {/* ========================================== */}
+
                                                     {room.images && room.images.length > 0 && (
                                                         <Box
                                                             sx={{
                                                                 display: 'flex',
-                                                                gap: 1.5, // Збільшили відступ між фотографіями
-                                                                p: 1.5,   // Збільшили внутрішній відступ
+                                                                gap: 1.5,
+                                                                p: 1.5,
                                                                 overflowX: 'auto',
                                                                 bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(0,0,0,0.2)' : '#f8f9fa',
                                                                 borderBottom: (theme) => theme.palette.mode === 'dark' ? '1px solid #333' : '1px solid #eaeaea',
@@ -311,16 +304,16 @@ export default function BookNow() {
                                                                 <Box
                                                                     key={img.id}
                                                                     sx={{
-                                                                        minWidth: 100, // БУЛО 70
-                                                                        width: 100,    // БУЛО 70
-                                                                        height: 75,    // БУЛО 50
+                                                                        minWidth: 100,
+                                                                        width: 100,
+                                                                        height: 75,
                                                                         borderRadius: 2,
                                                                         overflow: 'hidden',
                                                                         flexShrink: 0,
                                                                         border: (theme) => theme.palette.mode === 'dark' ? '1px solid #444' : '1px solid #ddd',
                                                                         cursor: 'pointer',
                                                                         transition: 'transform 0.2s ease',
-                                                                        '&:hover': { transform: 'scale(1.05)', zIndex: 1 } // Ефект зуму при наведенні
+                                                                        '&:hover': { transform: 'scale(1.05)', zIndex: 1 }
                                                                     }}
                                                                 >
                                                                     <img
@@ -332,7 +325,6 @@ export default function BookNow() {
                                                             ))}
                                                         </Box>
                                                     )}
-                                                    {/* ========================================== */}
                                                     <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', p: 3 }}>
                                                         <Typography variant="h6" fontWeight="bold" gutterBottom>Кімната №{room.number}</Typography>
 

@@ -122,7 +122,6 @@ export default function HotelDetails() {
                 </Typography>
             </Box>
 
-            {/* ГАЛЕРЕЯ */}
             <Box sx={{
                 height: { xs: '300px', md: '500px' },
                 display: 'flex',
@@ -162,7 +161,6 @@ export default function HotelDetails() {
             </Box>
 
             <Grid container spacing={6}>
-                {/* ЛІВА КОЛОНКА */}
                 <Grid item xs={12} md={8}>
                     <Box sx={{ mb: 6 }}>
                         <Typography variant="h5" fontWeight="bold" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -174,7 +172,6 @@ export default function HotelDetails() {
                         </Typography>
                     </Box>
 
-                    {/* ВІДГУКИ */}
                     <Box sx={{ mb: 4 }}>
                         <Typography variant="h5" fontWeight="bold" gutterBottom>
                             ⭐ Відгуки гостей ({reviews.length})
@@ -266,7 +263,6 @@ export default function HotelDetails() {
                     </Box>
                 </Grid>
 
-                {/* ПРАВА КОЛОНКА */}
                 <Grid item xs={12} md={4}>
                     <Paper
                         elevation={0}

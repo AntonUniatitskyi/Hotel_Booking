@@ -14,9 +14,7 @@ import LiveNotifications from './components/LiveNotifications';
 
 const NotFound = () => <h1 style={{ textAlign: 'center', marginTop: '50px' }}>404 - Сторінка не знайдена</h1>;
 
-// ==========================================
-// ГЛОБАЛЬНА ДИНАМІЧНА ТЕМА ДИЗАЙНУ
-// ==========================================
+
 const getModernTheme = (mode) => createTheme({
     typography: {
         fontFamily: '"Poppins", "Inter", "Roboto", "Helvetica", "Arial", sans-serif',
@@ -24,7 +22,7 @@ const getModernTheme = (mode) => createTheme({
         h3: { fontWeight: 700 }, h4: { fontWeight: 700 }, h5: { fontWeight: 600 }, h6: { fontWeight: 600 },
     },
     palette: {
-        mode, // Ключовий параметр для MUI (вмикає темні/світлі кольори текстів, інпутів тощо)
+        mode,
         primary: {
             main: '#FF5A5F',
             light: '#ff7e82',
@@ -35,9 +33,7 @@ const getModernTheme = (mode) => createTheme({
             main: '#00A699',
         },
         background: {
-            // У світлій темі - легкий сіруватий фон, у темній - глибокий темний (але не чисто чорний)
             default: mode === 'light' ? '#F7F9FC' : '#121212',
-            // Картки і контейнери
             paper: mode === 'light' ? '#FFFFFF' : '#1e1e1e',
         },
     },
@@ -77,18 +73,15 @@ const getModernTheme = (mode) => createTheme({
             styleOverrides: {
                 root: {
                     borderRadius: '12px',
-                    // Задаємо фон глобально для самого поля (всередині меж), а не для його квадратного контейнера
                     backgroundColor: mode === 'light' ? '#F7F9FC' : '#121212',
                 },
                 input: {
-                    // Хак для прибирання дефолтного кольору автозаповнення від браузера
                     '&:-webkit-autofill': {
                         WebkitBoxShadow: mode === 'light'
                             ? '0 0 0 100px #F7F9FC inset !important'
                             : '0 0 0 100px #121212 inset !important',
                         WebkitTextFillColor: mode === 'light' ? '#000 !important' : '#fff !important',
                         caretColor: mode === 'light' ? '#000 !important' : '#fff !important',
-                        // ПРИБРАНО borderRadius, щоб внутрішній блок зливався з полем іконки
                     },
                 }
             }
@@ -97,12 +90,10 @@ const getModernTheme = (mode) => createTheme({
 });
 
 function App() {
-    // 1. Читаємо тему з локального сховища або ставимо 'light' за замовчуванням
     const [themeMode, setThemeMode] = useState(() => {
         return localStorage.getItem('themeMode') || 'light';
     });
 
-    // 2. Функція для зміни теми
     const toggleTheme = () => {
         setThemeMode((prevMode) => {
             const newMode = prevMode === 'light' ? 'dark' : 'light';
@@ -111,19 +102,14 @@ function App() {
         });
     };
 
-    // 3. Створюємо тему при кожній зміні режиму
     const theme = useMemo(() => getModernTheme(themeMode), [themeMode]);
 
     return (
         <ThemeProvider theme={theme}>
             <BrowserRouter>
-                {/* CssBaseline автоматично застосує кольори фону та тексту на весь `<body>` */}
                 <CssBaseline />
-
-                {/* Передаємо функцію та поточний стан в Navbar */}
                 <Navbar toggleTheme={toggleTheme} mode={themeMode} />
                 <LiveNotifications />
-
                 <Routes>
                     <Route path="/" element={<Home />} />
                     <Route path="/login" element={<Auth />} />

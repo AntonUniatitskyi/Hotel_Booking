@@ -23,28 +23,24 @@ export default function AdminDashboard() {
     const [loading, setLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // СНАКБАР
     const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
-    // ФІЛЬТРИ ДЛЯ ЗАЯВОК
     const [filterHotel, setFilterHotel] = useState('');
     const [filterStartDate, setFilterStartDate] = useState('');
     const [filterLastDate, setFilterLastDate] = useState('');
     const [filterClientName, setFilterClientName] = useState('');
 
-    // ФОРМИ
     const [hostelForm, setHostelForm] = useState({ name: '', about: '', city: '', address: '', is_active: true, main_image: null });
     const [roomForm, setRoomForm] = useState({ number: '', price: '', bed: '', hostel: '', preview: null });
 
-    // МОДАЛКИ
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editingHotel, setEditingHotel] = useState(null);
     const [isClientModalOpen, setIsClientModalOpen] = useState(false);
     const [selectedClient, setSelectedClient] = useState(null);
 
-    // ГАЛЕРЕЯ
     const [uploadingImage, setUploadingImage] = useState(false);
     const [pendingGalleryFiles, setPendingGalleryFiles] = useState([]);
+
     const [myRooms, setMyRooms] = useState([]);
     const [isEditRoomModalOpen, setIsEditRoomModalOpen] = useState(false);
     const [editingRoom, setEditingRoom] = useState(null);
@@ -57,9 +53,6 @@ export default function AdminDashboard() {
 
     const handleCloseSnackbar = () => setSnackbar({ ...snackbar, open: false });
 
-    // ==========================================
-    // ЗАВАНТАЖЕННЯ ДАНИХ
-    // ==========================================
     const loadAllData = async () => {
         setLoading(true);
         try {
@@ -72,7 +65,7 @@ export default function AdminDashboard() {
             setMyHostels(Array.isArray(hostelsRes.data) ? hostelsRes.data : hostelsRes.data.results || []);
             setMyRooms(Array.isArray(roomsRes.data) ? roomsRes.data : roomsRes.data.results || []);
         } catch (error) {
-            console.error("Помилка завантаження даних:", error);
+            console.error(error);
             showNotify("Помилка при завантаженні даних", "error");
         } finally {
             setLoading(false);
@@ -85,9 +78,6 @@ export default function AdminDashboard() {
     const totalHotels = myHostels.length;
     const totalBookings = bookings.length;
 
-    // ==========================================
-    // ЛОГІКА: ЗАЯВКИ
-    // ==========================================
     const fetchFilteredBookings = async () => {
         try {
             const params = {};
@@ -129,35 +119,34 @@ export default function AdminDashboard() {
         }
     };
 
-    // ==========================================
-    // ЛОГІКА: ГАЛЕРЕЯ ТА ГОТЕЛІ
-    // ==========================================
     const handleSelectGalleryFiles = (e) => {
         setPendingGalleryFiles(prev => [...prev, ...Array.from(e.target.files)]);
         e.target.value = null;
     };
 
-    const handleConfirmUploadRoomGallery = async () => {
-        if (pendingRoomGalleryFiles.length === 0) return;
-        setUploadingRoomImage(true);
+    const handleConfirmUploadGallery = async () => {
+        if (pendingGalleryFiles.length === 0) return;
+        setUploadingImage(true);
         const formData = new FormData();
-        pendingRoomGalleryFiles.forEach(file => formData.append('images', file));
+        pendingGalleryFiles.forEach(file => formData.append('images', file));
 
         try {
-            const response = await api.post(`rooms/${editingRoom.id}/upload_image/`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-            // ЗМІНА: замінили gallery_images на images
-            const updatedRoom = { ...editingRoom, images: [...(editingRoom.images || []), ...response.data] };
-            setEditingRoom(updatedRoom);
-            setMyRooms(prev => prev.map(r => r.id === editingRoom.id ? updatedRoom : r));
-            setPendingRoomGalleryFiles([]);
-            showNotify("Фото кімнати успішно додані", "success");
+            const response = await api.post(`hostels/${editingHotel.id}/upload_image/`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            const updatedHotel = { ...editingHotel, gallery_images: [...(editingHotel.gallery_images || []), ...response.data] };
+            setEditingHotel(updatedHotel);
+            setMyHostels(prev => prev.map(h => h.id === editingHotel.id ? updatedHotel : h));
+            setPendingGalleryFiles([]);
+            showNotify("Фото успішно додані", "success");
         } catch (error) {
             console.error(error);
-            showNotify("Помилка завантаження фото кімнати", "error");
+            showNotify("Помилка завантаження фото", "error");
         } finally {
-            setUploadingRoomImage(false);
+            setUploadingImage(false);
         }
     };
+
     const handleDeleteGalleryImage = async (imageId) => {
         if (!window.confirm("Видалити це фото назавжди?")) return;
         try {
@@ -235,6 +224,8 @@ export default function AdminDashboard() {
             await api.post('rooms/', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
             showNotify("🛏️ Кімнату успішно додано!", "success");
             setRoomForm({ number: '', price: '', bed: '', hostel: '', preview: null });
+            loadAllData();
+            setCurrentTab(2);
         } catch (error) {
             console.error(error);
             showNotify("Помилка створення кімнати", "error");
@@ -243,9 +234,6 @@ export default function AdminDashboard() {
         }
     };
 
-    // ==========================================
-    // ЛОГІКА: РЕДАГУВАННЯ КІМНАТ ТА ЇХ ГАЛЕРЕЯ
-    // ==========================================
     const handleDeleteRoom = async (id) => {
         if (!window.confirm("Видалити цю кімнату назавжди?")) return;
         try {
@@ -280,6 +268,26 @@ export default function AdminDashboard() {
         }
     };
 
+    const handleConfirmUploadRoomGallery = async () => {
+        if (pendingRoomGalleryFiles.length === 0) return;
+        setUploadingRoomImage(true);
+        const formData = new FormData();
+        pendingRoomGalleryFiles.forEach(file => formData.append('images', file));
+
+        try {
+            const response = await api.post(`rooms/${editingRoom.id}/upload_image/`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+            const updatedRoom = { ...editingRoom, images: [...(editingRoom.images || []), ...response.data] };
+            setEditingRoom(updatedRoom);
+            setMyRooms(prev => prev.map(r => r.id === editingRoom.id ? updatedRoom : r));
+            setPendingRoomGalleryFiles([]);
+            showNotify("Фото кімнати успішно додані", "success");
+        } catch (error) {
+            console.error(error);
+            showNotify("Помилка завантаження фото кімнати", "error");
+        } finally {
+            setUploadingRoomImage(false);
+        }
+    };
 
     const handleDeleteRoomGalleryImage = async (imageId) => {
         if (!window.confirm("Видалити це фото кімнати назавжди?")) return;
@@ -303,7 +311,6 @@ export default function AdminDashboard() {
                 <Typography variant="h4" fontWeight="bold">👑 Панель Управління</Typography>
             </Box>
 
-            {/* СТАТИСТИКА (ДАШБОРДИ) */}
             <Grid container spacing={3} sx={{ mb: 5 }}>
                 <Grid item xs={12} md={4}>
                     <Card elevation={0} sx={{
@@ -352,7 +359,6 @@ export default function AdminDashboard() {
                 </Grid>
             </Grid>
 
-            {/* НАВІГАЦІЯ */}
             <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 4 }}>
                 <Tabs value={currentTab} onChange={(e, v) => setCurrentTab(v)} variant="scrollable" sx={{ '& .MuiTab-root': { fontWeight: 'bold', fontSize: '1rem' } }}>
                     <Tab label="📝 Заявки на бронювання" />
@@ -363,7 +369,6 @@ export default function AdminDashboard() {
                 </Tabs>
             </Box>
 
-            {/* ВКЛАДКА 0: ЗАЯВКИ */}
             {currentTab === 0 && (
                 <Box>
                     <Paper elevation={0} sx={{
@@ -470,7 +475,6 @@ export default function AdminDashboard() {
                 </Box>
             )}
 
-            {/* ВКЛАДКА 1: МОЇ ГОТЕЛІ */}
             {currentTab === 1 && (
                 <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 4, border: (theme) => theme.palette.mode === 'dark' ? '1px solid #333' : '1px solid #e0e0e0', bgcolor: 'background.paper' }}>
                     <Table>
@@ -501,7 +505,6 @@ export default function AdminDashboard() {
                 </TableContainer>
             )}
 
-            {/* ВКЛАДКА 2: МОЇ КІМНАТИ */}
             {currentTab === 2 && (
                 <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 4, border: (theme) => theme.palette.mode === 'dark' ? '1px solid #333' : '1px solid #e0e0e0', bgcolor: 'background.paper' }}>
                     <Table>
@@ -542,7 +545,6 @@ export default function AdminDashboard() {
                 </TableContainer>
             )}
 
-            {/* ВКЛАДКА 3: ДОДАТИ ГОТЕЛЬ */}
             {currentTab === 3 && (
                 <Paper elevation={0} sx={{ p: { xs: 3, md: 5 }, maxWidth: 700, mx: 'auto', borderRadius: 4, border: (theme) => theme.palette.mode === 'dark' ? '1px solid #333' : '1px solid #e0e0e0', bgcolor: 'background.paper' }}>
                     <Typography variant="h5" fontWeight="bold" mb={3}>Створення нового готелю</Typography>
@@ -568,7 +570,6 @@ export default function AdminDashboard() {
                 </Paper>
             )}
 
-            {/* ВКЛАДКА 4: ДОДАТИ КІМНАТУ */}
             {currentTab === 4 && (
                 <Paper elevation={0} sx={{ p: { xs: 3, md: 5 }, maxWidth: 700, mx: 'auto', borderRadius: 4, border: (theme) => theme.palette.mode === 'dark' ? '1px solid #333' : '1px solid #e0e0e0', bgcolor: 'background.paper' }}>
                     <Typography variant="h5" fontWeight="bold" mb={3}>Додавання кімнати</Typography>
@@ -611,11 +612,13 @@ export default function AdminDashboard() {
                             <TextField required label="Адреса" name="address" value={editingHotel.address} onChange={(e) => setEditingHotel(p => ({ ...p, address: e.target.value }))} fullWidth />
                             <FormControlLabel control={<Switch checked={editingHotel.is_active} onChange={(e) => setEditingHotel(p => ({ ...p, is_active: e.target.checked }))} />} label="Активний" />
 
-                            {/* ГАЛЕРЕЯ */}
                             <Box sx={{ mt: 2, p: 2, border: (theme) => theme.palette.mode === 'dark' ? '1px solid #444' : '1px solid #e0e0e0', borderRadius: 2, bgcolor: 'background.default' }}>
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                                     <Typography variant="h6" fontWeight="bold">Галерея</Typography>
-                                    <Button variant="contained" component="label" size="small" startIcon={<CloudUploadIcon />}>Обрати фото<input type="file" hidden accept="image/*" multiple onChange={handleSelectGalleryFiles} /></Button>
+                                    <Button variant="contained" component="label" size="small" startIcon={<CloudUploadIcon />}>
+                                        Обрати фото
+                                        <input type="file" hidden accept="image/*" multiple onChange={handleSelectGalleryFiles} />
+                                    </Button>
                                 </Box>
                                 {pendingGalleryFiles.length > 0 && (
                                     <Box sx={{ mb: 2, p: 2, border: '2px dashed #1976d2', borderRadius: 2, bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(25, 118, 210, 0.1)' : '#e3f2fd' }}>
@@ -671,9 +674,6 @@ export default function AdminDashboard() {
                 <DialogActions sx={{ p: 2 }}><Button onClick={() => setIsClientModalOpen(false)} color="inherit" fullWidth>Закрити</Button></DialogActions>
             </Dialog>
 
-            {/* ========================================================= */}
-            {/* МОДАЛКА РЕДАГУВАННЯ КІМНАТИ ТА ЇЇ ГАЛЕРЕЇ */}
-            {/* ========================================================= */}
             <Dialog open={isEditRoomModalOpen} onClose={() => setIsEditRoomModalOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 4, bgcolor: 'background.paper' } }}>
                 <DialogTitle fontWeight="bold">Редагувати кімнату №{editingRoom?.number}</DialogTitle>
                 <DialogContent dividers>
@@ -701,7 +701,6 @@ export default function AdminDashboard() {
                                 </Button>
                             </Box>
 
-                            {/* ГАЛЕРЕЯ КІМНАТИ */}
                             <Box sx={{ mt: 2, p: 2, border: (theme) => theme.palette.mode === 'dark' ? '1px solid #444' : '1px solid #e0e0e0', borderRadius: 2, bgcolor: 'background.default' }}>
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                                     <Typography variant="h6" fontWeight="bold">Галерея кімнати</Typography>
@@ -745,7 +744,6 @@ export default function AdminDashboard() {
                 </DialogActions>
             </Dialog>
 
-            {/* СНАКБАР */}
             <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={handleCloseSnackbar} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
                 <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%', borderRadius: 3 }}>{snackbar.message}</Alert>
             </Snackbar>

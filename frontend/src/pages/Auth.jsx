@@ -24,9 +24,7 @@ export default function Auth() {
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
-    // ==========================================
-    // СТЕЙТ ДЛЯ СНАКБАРІВ
-    // ==========================================
+
     const [snackbar, setSnackbar] = useState({
         open: false,
         message: '',
@@ -51,7 +49,8 @@ export default function Auth() {
         setIsLoading(true);
 
         if (!isLogin) {
-            // ================= РЕЄСТРАЦІЯ =================
+
+
             try {
                 const dataToSend = {
                     ...formData,
@@ -71,7 +70,6 @@ export default function Auth() {
             }
 
         } else {
-            // ================= ВХІД =================
             try {
                 const loginRes = await api.post('login/', {
                     username: formData.username,
@@ -134,7 +132,6 @@ export default function Auth() {
                         border: (theme) => theme.palette.mode === 'dark' ? '1px solid #333' : 'none'
                     }}
                 >
-                    {/* ЛІВА ЧАСТИНА: Картинка */}
                     <Box
                         sx={{
                             width: { xs: '0%', md: '50%' },
@@ -161,7 +158,6 @@ export default function Auth() {
                         </Box>
                     </Box>
 
-                    {/* ПРАВА ЧАСТИНА: Форма */}
                     <Box
                         sx={{
                             width: { xs: '100%', md: '50%' },
